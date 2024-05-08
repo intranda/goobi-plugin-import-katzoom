@@ -27,10 +27,8 @@ import de.sub.goobi.config.ConfigPlugins;
 
 @RunWith(PowerMockRunner.class)
 @PrepareForTest({ ConfigPlugins.class })
-@PowerMockIgnore({ "javax.management.*", "javax.net.ssl.*" ,"jdk.internal.reflect.*"})
+@PowerMockIgnore({ "javax.management.*", "javax.net.ssl.*", "jdk.internal.reflect.*" })
 public class KatzoomImportPluginTest {
-
-
 
     @Rule
     public TemporaryFolder folder = new TemporaryFolder();
@@ -69,7 +67,7 @@ public class KatzoomImportPluginTest {
     public void testConstructor() {
         KatzoomImportPlugin plugin = new KatzoomImportPlugin();
         assertNotNull(plugin);
-        assertEquals(ImportType.FILE, plugin.getImportTypes().get(0));
+        assertEquals(ImportType.FOLDER, plugin.getImportTypes().get(0));
         plugin.setImportFolder(tempFolder.getAbsolutePath());
     }
 

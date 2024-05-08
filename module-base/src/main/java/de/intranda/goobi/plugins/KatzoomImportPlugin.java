@@ -1,9 +1,8 @@
 package de.intranda.goobi.plugins;
 
 import java.io.File;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 
@@ -11,7 +10,6 @@ import org.apache.commons.configuration.SubnodeConfiguration;
 import org.apache.commons.configuration.XMLConfiguration;
 import org.apache.commons.configuration.reloading.FileChangedReloadingStrategy;
 import org.apache.commons.configuration.tree.xpath.XPathExpressionEngine;
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.goobi.production.enums.ImportReturnValue;
 import org.goobi.production.enums.ImportType;
@@ -43,6 +41,8 @@ import ugh.fileformats.mets.MetsMods;
 @PluginImplementation
 @Log4j2
 public class KatzoomImportPlugin implements IImportPluginVersion2 {
+
+    private static final long serialVersionUID = 163324837122210323L;
 
     @Getter
     private String title = "intranda_import_katzoom";
@@ -80,7 +80,7 @@ public class KatzoomImportPlugin implements IImportPluginVersion2 {
      */
     public KatzoomImportPlugin() {
         importTypes = new ArrayList<>();
-        importTypes.add(ImportType.FILE);
+        importTypes.add(ImportType.FOLDER);
     }
 
     /**
@@ -105,59 +105,15 @@ public class KatzoomImportPlugin implements IImportPluginVersion2 {
     }
 
     /**
-     * This method is used to generate records based on the imported data
-     * these records will then be used later to generate the Goobi processes
+     * This method is used to generate records based on the imported data these records will then be used later to generate the Goobi processes
      */
     @Override
     public List<Record> generateRecordsFromFile() {
-        if (StringUtils.isBlank(workflowTitle)) {
-            workflowTitle = form.getTemplate().getTitel();
-        }
-        readConfig();
-
-        // the list where the records are stored
-        List<Record> recordList = new ArrayList<>();
-
-        try {
-            // read the file in to generate the records
-            String content = FileUtils.readFileToString(file, StandardCharsets.UTF_8);
-        
-            // run through the content line by line
-            String lines[] = content.split("\\r?\\n");
-
-            // generate a record for each process to be created
-            for (String line : lines) {
-                
-                // Split the string and generate a hashmap for all needed metadata
-                String fields[] = line.split(";");
-                HashMap<String, String> map = new HashMap<String, String>();
-                String id = fields[0].trim();
-                
-                // put all fields into the hashmap
-                map.put("ID", id);
-                map.put("Author first name", fields[1].trim());
-                map.put("Author last name", fields[2].trim());
-                map.put("Title", fields[3].trim());
-                map.put("Year", fields[4].trim());
-                
-                // create a record and put the hashmap with data to it
-                Record r = new Record();
-                r.setId(id);
-                r.setObject(map);
-                recordList.add(r);                
-            }
-        
-        } catch (IOException e) {
-            log.error("Error while reading the uploaded file", e);
-        }
-
-        // return the list of all generated records
-        return recordList;
+        return Collections.emptyList();
     }
 
     /**
-     * This method is used to actually create the Goobi processes
-     * this is done based on previously created records
+     * This method is used to actually create the Goobi processes this is done based on previously created records
      */
     @Override
     @SuppressWarnings("unchecked")
@@ -210,12 +166,12 @@ public class KatzoomImportPlugin implements IImportPluginVersion2 {
                 Metadata md2 = new Metadata(prefs.getMetadataTypeByName("TitleDocMain"));
                 md2.setValue(map.get("Title"));
                 logical.addMetadata(md2);
-                
+
                 // create metadata field for year
                 Metadata md3 = new Metadata(prefs.getMetadataTypeByName("PublicationYear"));
                 md3.setValue(map.get("Year"));
                 logical.addMetadata(md3);
-                
+
                 // add author
                 Person per = new Person(prefs.getMetadataTypeByName("Author"));
                 per.setFirstname(map.get("Author first name"));
@@ -276,13 +232,12 @@ public class KatzoomImportPlugin implements IImportPluginVersion2 {
 
     @Override
     public List<Record> splitRecords(String string) {
-        List<Record> answer = new ArrayList<>();
-        return answer;
+        return Collections.emptyList();
     }
 
     @Override
     public List<String> splitIds(String ids) {
-        return null;
+        return Collections.emptyList();
     }
 
     @Override
@@ -297,21 +252,24 @@ public class KatzoomImportPlugin implements IImportPluginVersion2 {
 
     @Override
     public void deleteFiles(List<String> arg0) {
+        // do nothing
     }
 
     @Override
     public List<Record> generateRecordsFromFilenames(List<String> arg0) {
+        //TODO
         return null;
     }
 
     @Override
     public List<String> getAllFilenames() {
+        //TODO
         return null;
     }
 
     @Override
     public List<? extends DocstructElement> getCurrentDocStructs() {
-        return null;
+        return null; //NOSONAR
     }
 
     @Override
@@ -321,7 +279,7 @@ public class KatzoomImportPlugin implements IImportPluginVersion2 {
 
     @Override
     public List<String> getPossibleDocstructs() {
-        return null;
+        return null; //NOSONAR
     }
 
     @Override
@@ -331,15 +289,17 @@ public class KatzoomImportPlugin implements IImportPluginVersion2 {
 
     @Override
     public List<ImportProperty> getProperties() {
-        return null;
+        return null; //NOSONAR
     }
 
     @Override
     public void setData(Record arg0) {
+        // do nothing
     }
 
     @Override
     public void setDocstruct(DocstructElement arg0) {
+        // do nothing
     }
 
     @Override
