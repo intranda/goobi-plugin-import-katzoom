@@ -42,10 +42,10 @@ import ugh.fileformats.mets.MetsMods;
 
 @PluginImplementation
 @Log4j2
-public class KickStartImportPlugin implements IImportPluginVersion2 {
+public class KatzoomImportPlugin implements IImportPluginVersion2 {
 
     @Getter
-    private String title = "intranda_import_kick_start";
+    private String title = "intranda_import_katzoom";
     @Getter
     private PluginType type = PluginType.Import;
 
@@ -78,7 +78,7 @@ public class KickStartImportPlugin implements IImportPluginVersion2 {
     /**
      * define what kind of import plugin this is
      */
-    public KickStartImportPlugin() {
+    public KatzoomImportPlugin() {
         importTypes = new ArrayList<>();
         importTypes.add(ImportType.FILE);
     }
@@ -249,7 +249,7 @@ public class KickStartImportPlugin implements IImportPluginVersion2 {
                 fileformat.write(fileName);
                 io.setImportReturnValue(ImportReturnValue.ExportFinished);
             } catch (UGHException e) {
-                log.error("Error while creating Goobi processes in the KickStartImportPlugin", e);
+                log.error("Error while creating Goobi processes in the KatzoomImportPlugin", e);
                 io.setImportReturnValue(ImportReturnValue.WriteError);
             }
 

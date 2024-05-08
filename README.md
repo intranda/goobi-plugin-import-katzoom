@@ -1,8 +1,8 @@
-# Goobi workflow Plugin: goobi-plugin-import-kick-start
+# Goobi workflow Plugin: goobi-plugin-import-katzoom
 
 <img src="https://goobi.io/wp-content/uploads/logo_goobi_plugin.png" align="right" style="margin:0 0 20px 20px;" alt="Plugin for Goobi workflow" width="175" height="109">
 
-{KICKSTART_DESCRIPTION}
+Katzoom import
 
 This is a plugin for Goobi workflow, the open source workflow tracking software for digitisation projects. More information about Goobi workflow is available under https://goobi.io. If you want to get in touch with the user community simply go to https://community.goobi.io.
 
@@ -12,7 +12,7 @@ More information about the functionality of this plugin and the complete documen
 
 Detail | Description
 --- | ---
-**Plugin identifier**       | intranda_import_kick_start
+**Plugin identifier**       | intranda_import_katzoom
 **Plugin type**             | Import plugin
 **Licence**                 | GPL 2.0 or newer
 **Documentation (German)**  | - no documentation available -
