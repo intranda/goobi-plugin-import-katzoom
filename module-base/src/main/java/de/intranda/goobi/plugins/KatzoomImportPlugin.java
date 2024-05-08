@@ -3,7 +3,6 @@ package de.intranda.goobi.plugins;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 
 import org.apache.commons.configuration.SubnodeConfiguration;
@@ -11,7 +10,6 @@ import org.apache.commons.configuration.XMLConfiguration;
 import org.apache.commons.configuration.reloading.FileChangedReloadingStrategy;
 import org.apache.commons.configuration.tree.xpath.XPathExpressionEngine;
 import org.apache.commons.lang.StringUtils;
-import org.goobi.production.enums.ImportReturnValue;
 import org.goobi.production.enums.ImportType;
 import org.goobi.production.enums.PluginType;
 import org.goobi.production.importer.DocstructElement;
@@ -27,16 +25,10 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.log4j.Log4j2;
 import net.xeoh.plugins.base.annotations.PluginImplementation;
-import ugh.dl.DigitalDocument;
-import ugh.dl.DocStruct;
 import ugh.dl.DocStructType;
 import ugh.dl.Fileformat;
-import ugh.dl.Metadata;
 import ugh.dl.MetadataType;
-import ugh.dl.Person;
 import ugh.dl.Prefs;
-import ugh.exceptions.UGHException;
-import ugh.fileformats.mets.MetsMods;
 
 @PluginImplementation
 @Log4j2
@@ -91,6 +83,8 @@ public class KatzoomImportPlugin implements IImportPluginVersion2 {
         xmlConfig.setExpressionEngine(new XPathExpressionEngine());
         xmlConfig.setReloadingStrategy(new FileChangedReloadingStrategy());
 
+        // TODO: configure for each index, if back side was was scanned
+
         SubnodeConfiguration myconfig = null;
         try {
             myconfig = xmlConfig.configurationAt("//config[./template = '" + workflowTitle + "']");
@@ -129,89 +123,6 @@ public class KatzoomImportPlugin implements IImportPluginVersion2 {
         MetadataType pathimagefilesType = prefs.getMetadataTypeByName("pathimagefiles");
         List<ImportObject> answer = new ArrayList<>();
 
-        // run through all records and create a Goobi process for each of it
-        for (Record record : records) {
-            ImportObject io = new ImportObject();
-
-            String id = record.getId().replaceAll("\\W", "_");
-            HashMap<String, String> map = (HashMap<String, String>) record.getObject();
-
-            // create a new mets file
-            try {
-                Fileformat fileformat = new MetsMods(prefs);
-
-                // create digital document
-                DigitalDocument dd = new DigitalDocument();
-                fileformat.setDigitalDocument(dd);
-
-                // create physical DocStruct
-                DocStruct physical = dd.createDocStruct(physicalType);
-                dd.setPhysicalDocStruct(physical);
-
-                // set imagepath
-                Metadata newmd = new Metadata(pathimagefilesType);
-                newmd.setValue("/images/");
-                physical.addMetadata(newmd);
-
-                // create logical DocStruct
-                DocStruct logical = dd.createDocStruct(logicalType);
-                dd.setLogicalDocStruct(logical);
-
-                // create metadata field for CatalogIDDigital with cleaned value
-                Metadata md1 = new Metadata(prefs.getMetadataTypeByName("CatalogIDDigital"));
-                md1.setValue(map.get("ID").replaceAll("\\W", "_"));
-                logical.addMetadata(md1);
-
-                // create metadata field for main title
-                Metadata md2 = new Metadata(prefs.getMetadataTypeByName("TitleDocMain"));
-                md2.setValue(map.get("Title"));
-                logical.addMetadata(md2);
-
-                // create metadata field for year
-                Metadata md3 = new Metadata(prefs.getMetadataTypeByName("PublicationYear"));
-                md3.setValue(map.get("Year"));
-                logical.addMetadata(md3);
-
-                // add author
-                Person per = new Person(prefs.getMetadataTypeByName("Author"));
-                per.setFirstname(map.get("Author first name"));
-                per.setLastname(map.get("Author last name"));
-                //per.setRole("Author");
-                logical.addPerson(per);
-
-                // create metadata field for configured digital collection
-                MetadataType typeCollection = prefs.getMetadataTypeByName("singleDigCollection");
-                if (StringUtils.isNotBlank(collection)) {
-                    Metadata mdc = new Metadata(typeCollection);
-                    mdc.setValue(collection);
-                    logical.addMetadata(mdc);
-                }
-
-                // and add all collections that where selected
-                if (form != null) {
-                    for (String c : form.getDigitalCollections()) {
-                        if (!c.equals(collection.trim())) {
-                            Metadata md = new Metadata(typeCollection);
-                            md.setValue(c);
-                            logical.addMetadata(md);
-                        }
-                    }
-                }
-
-                // set the title for the Goobi process
-                io.setProcessTitle(id);
-                String fileName = getImportFolder() + File.separator + io.getProcessTitle() + ".xml";
-                io.setMetsFilename(fileName);
-                fileformat.write(fileName);
-                io.setImportReturnValue(ImportReturnValue.ExportFinished);
-            } catch (UGHException e) {
-                log.error("Error while creating Goobi processes in the KatzoomImportPlugin", e);
-                io.setImportReturnValue(ImportReturnValue.WriteError);
-            }
-
-            // now add the process to the list
-            answer.add(io);
-        }
         return answer;
     }
 
@@ -256,13 +167,38 @@ public class KatzoomImportPlugin implements IImportPluginVersion2 {
     }
 
     @Override
-    public List<Record> generateRecordsFromFilenames(List<String> arg0) {
+    public List<Record> generateRecordsFromFilenames(List<String> indexes) {
         //TODO
+        // run through each selected index
+        // load *.ind file to check letter index (format it: new line after each number)
+        // load *.lli file to check tray index (does not exist for every index)
+
+        // get content from all sub folders
+
+        // order by name
+
+        // for each file prefix (or every second, if back side is scanned)
+
+        // collect all files with the same prefix (and +1 if back is scanned)
+
+        // create process
+
+        // get position in total index
+
+        // find correct letter based on position
+
+        // find correct tray based on position
+
+        // get position within letter
+
+        // get position within tray
+
         return null;
     }
 
     @Override
     public List<String> getAllFilenames() {
+        // display content of import folder, it should contain a list of all card indexes
         //TODO
         return null;
     }
