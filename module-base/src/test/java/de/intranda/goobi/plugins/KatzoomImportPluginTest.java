@@ -2,14 +2,17 @@ package de.intranda.goobi.plugins;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 
 import org.easymock.EasyMock;
 import org.goobi.production.enums.ImportType;
+import org.goobi.production.importer.ImportObject;
 import org.goobi.production.importer.Record;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -23,6 +26,8 @@ import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 
 import de.sub.goobi.config.ConfigurationHelper;
+import ugh.dl.Prefs;
+import ugh.fileformats.mets.MetsMods;
 
 @RunWith(PowerMockRunner.class)
 @PrepareForTest({ ConfigurationHelper.class })
@@ -99,7 +104,7 @@ public class KatzoomImportPluginTest {
         assertEquals(1, kip.getLetterPosition());
         assertEquals("A", kip.getTrayName());
         assertEquals(1, kip.getTrayPosition());
-
+        assertEquals(9, kip.getFiles().size());
         // last in 'A'
         rec = recordList.get(199);
         kip = (KatzoomImportObject) rec.getObject();
@@ -126,7 +131,42 @@ public class KatzoomImportPluginTest {
         assertEquals(300, kip.getLetterPosition());
         assertEquals("Amon", kip.getTrayName());
         assertEquals(112, kip.getTrayPosition());
-
     }
 
+    @Test
+    public void testGenerateFiles() throws Exception {
+        File importFolder = folder.newFolder();
+        importFolder.mkdir();
+
+        KatzoomImportPlugin plugin = new KatzoomImportPlugin();
+        plugin.setImportFolder(importFolder.getAbsolutePath());
+        Prefs prefs = new Prefs();
+        prefs.loadPrefs(resourcesFolder + "ruleset.xml");
+        plugin.setPrefs(prefs);
+
+        List<String> folderList = plugin.getAllFilenames();
+        List<Record> recordList = plugin.generateRecordsFromFilenames(folderList);
+
+        List<ImportObject> imports = plugin.generateFiles(recordList.subList(0, 10));
+        assertEquals(10, imports.size());
+
+        ImportObject io = imports.get(0);
+        assertEquals("b0000001", io.getProcessTitle());
+        assertTrue(io.getMetsFilename().endsWith("b0000001.xml"));
+
+        // check if files where copied
+        Path masterFolder = Paths.get(io.getMetsFilename().replace(".xml", "/images/master_b0000001_media"));
+        assertTrue(Files.exists(masterFolder));
+        assertTrue(Files.exists(Paths.get(masterFolder.toString(), "b0000001.tif")));
+
+        // read metadata
+        MetsMods mm = new MetsMods(prefs);
+        mm.read(io.getMetsFilename());
+
+        // two page elements where created for b0000001.tif and b0000002.tif
+        assertEquals(2, mm.getDigitalDocument().getPhysicalDocStruct().getAllChildren().size());
+        assertEquals("b0000001.tif", mm.getDigitalDocument().getPhysicalDocStruct().getAllChildren().get(0).getImageName());
+        assertEquals("b0000002.tif", mm.getDigitalDocument().getPhysicalDocStruct().getAllChildren().get(1).getImageName());
+
+    }
 }

@@ -21,7 +21,6 @@ import org.apache.commons.configuration.SubnodeConfiguration;
 import org.apache.commons.configuration.XMLConfiguration;
 import org.apache.commons.configuration.reloading.FileChangedReloadingStrategy;
 import org.apache.commons.configuration.tree.xpath.XPathExpressionEngine;
-import org.apache.commons.lang.StringUtils;
 import org.goobi.production.enums.ImportType;
 import org.goobi.production.enums.PluginType;
 import org.goobi.production.importer.DocstructElement;
@@ -39,10 +38,15 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.log4j.Log4j2;
 import net.xeoh.plugins.base.annotations.PluginImplementation;
+import ugh.dl.DigitalDocument;
+import ugh.dl.DocStruct;
 import ugh.dl.DocStructType;
 import ugh.dl.Fileformat;
+import ugh.dl.Metadata;
 import ugh.dl.MetadataType;
 import ugh.dl.Prefs;
+import ugh.exceptions.UGHException;
+import ugh.fileformats.mets.MetsMods;
 
 @PluginImplementation
 @Log4j2
@@ -134,18 +138,123 @@ public class KatzoomImportPlugin implements IImportPluginVersion3 {
      */
     @Override
     public List<ImportObject> generateFiles(List<Record> records) {
-        if (StringUtils.isBlank(workflowName)) {
-            workflowName = form.getTemplate().getTitel();
-        }
-        readConfig();
 
-        // some general preparations
-        DocStructType physicalType = prefs.getDocStrctTypeByName("BoundBook");
-        DocStructType logicalType = prefs.getDocStrctTypeByName("Monograph");
-        MetadataType pathimagefilesType = prefs.getMetadataTypeByName("pathimagefiles");
+        readConfig();
         List<ImportObject> answer = new ArrayList<>();
 
+        for (Record rec : records) {
+            ImportObject io = new ImportObject();
+
+            KatzoomImportObject kip = (KatzoomImportObject) rec.getObject();
+
+            List<String> files = kip.getFiles();
+            Collections.sort(files);
+            String filename = files.get(0);
+            // get process title
+            String processName = filename.substring(filename.lastIndexOf("/") + 1, filename.indexOf("."));
+            io.setProcessTitle(processName);
+
+            io.setMetsFilename(importFolder + "/" + processName + ".xml");
+
+            // folder structure
+            Path folder = Paths.get(filename).getParent();
+            String last = folder.getFileName().toString();
+            String prev = folder.getParent().getFileName().toString();
+            String third = folder.getParent().getParent().getFileName().toString();
+
+            // some general preparations
+            DocStructType physicalType = prefs.getDocStrctTypeByName("BoundBook");
+            DocStructType logicalType = prefs.getDocStrctTypeByName("Monograph"); // TODO get from config? Different type?
+            DocStructType pageType = prefs.getDocStrctTypeByName("page");
+
+            MetadataType pathimagefilesType = prefs.getMetadataTypeByName("pathimagefiles");
+            MetadataType idType = prefs.getMetadataTypeByName("CatalogIDDigital");
+            try {
+                Fileformat fileformat = new MetsMods(prefs);
+                DigitalDocument dd = new DigitalDocument();
+                fileformat.setDigitalDocument(dd);
+
+                DocStruct logical = dd.createDocStruct(logicalType);
+                dd.setLogicalDocStruct(logical);
+                Metadata id = new Metadata(idType);
+                id.setValue(processName);
+                logical.addMetadata(id);
+
+                DocStruct physical = dd.createDocStruct(physicalType);
+                dd.setPhysicalDocStruct(physical);
+                Metadata path = new Metadata(pathimagefilesType);
+                path.setValue(processName);
+                physical.addMetadata(path);
+
+                Path masterFolder = copyFiles(files, processName);
+
+                List<Path> filesInMaster = StorageProvider.getInstance().listFiles(masterFolder.toString());
+                int currentPhysicalOrder = 0;
+                for (Path p : filesInMaster) {
+                    // create new page element for each image file
+                    DocStruct page = dd.createDocStruct(pageType);
+                    page.setImageName(p.getFileName().toString());
+
+                    MetadataType mdt = prefs.getMetadataTypeByName("physPageNumber");
+                    Metadata mdTemp = new Metadata(mdt);
+                    mdTemp.setValue(String.valueOf(++currentPhysicalOrder));
+                    page.addMetadata(mdTemp);
+
+                    // logical page no
+                    mdt = prefs.getMetadataTypeByName("logicalPageNumber");
+                    mdTemp = new Metadata(mdt);
+                    mdTemp.setValue("uncounted");
+
+                    page.addMetadata(mdTemp);
+                    physical.addChild(page);
+                    logical.addReferenceTo(page, "logical_physical");
+                }
+                // add metadata
+
+                fileformat.write(io.getMetsFilename());
+            } catch (UGHException | IOException e) {
+                log.error(e);
+            }
+
+            answer.add(io);
+        }
+
         return answer;
+    }
+
+    private Path copyFiles(List<String> files, String processName) throws IOException {
+        // create folder structure
+        Path processFolder = Paths.get(importFolder, processName);
+        Path mediaFolder = Paths.get(processFolder.toString(), "images", processName + "_media");
+        Path masterFolder = Paths.get(processFolder.toString(), "images", "master_" + processName + "_media");
+
+        Path textFolder = Paths.get(processFolder.toString(), "ocr", processName + "txt");
+        Path pdfFolder = Paths.get(processFolder.toString(), "ocr", processName + "_pdf");
+        Files.createDirectories(mediaFolder);
+        Files.createDirectories(masterFolder);
+        Files.createDirectories(textFolder);
+        Files.createDirectories(pdfFolder);
+
+        for (String fileToImport : files) {
+            Path fileToCopy = Paths.get(fileToImport);
+            // tif -> images/master
+            if (fileToImport.endsWith(".tif")) {
+                StorageProvider.getInstance().copyFile(fileToCopy, Paths.get(masterFolder.toString(), fileToCopy.getFileName().toString()));
+            }
+            // png -> images/media
+            else if (fileToImport.endsWith(".png")) {
+                StorageProvider.getInstance().copyFile(fileToCopy, Paths.get(mediaFolder.toString(), fileToCopy.getFileName().toString()));
+            }
+            // txt -> ocr/text
+            else if (fileToImport.endsWith(".txt")) {
+                StorageProvider.getInstance().copyFile(fileToCopy, Paths.get(textFolder.toString(), fileToCopy.getFileName().toString()));
+            }
+            // pdf -> ocr/pdf
+            else if (fileToImport.endsWith(".pdf")) {
+                StorageProvider.getInstance().copyFile(fileToCopy, Paths.get(pdfFolder.toString(), fileToCopy.getFileName().toString()));
+            }
+        }
+        return masterFolder;
     }
 
     /**
@@ -215,7 +324,7 @@ public class KatzoomImportPlugin implements IImportPluginVersion3 {
             try {
                 Files.find(folder, 5,
                         (p, found) -> found.isRegularFile())
-                        .forEach(p -> allFiles.add(p));
+                        .forEach(allFiles::add);
             } catch (IOException e) {
                 log.error(e);
             }
