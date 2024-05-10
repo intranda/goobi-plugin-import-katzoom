@@ -12,6 +12,5 @@
         <!-- list all indexes where backside was scanned -->
         <backsideScan>ank bis 45 Nominal</backsideScan>
         <backsideScan>nka BKA Nominal</backsideScan>
-        <backsideScan>nka BKA Nominal</backsideScan>
 	</config>
 </config_plugin>

@@ -88,7 +88,45 @@ public class KatzoomImportPluginTest {
         KatzoomImportPlugin plugin = new KatzoomImportPlugin();
         List<String> folderList = plugin.getAllFilenames();
         List<Record> recordList = plugin.generateRecordsFromFilenames(folderList);
-        assertEquals(0, recordList.size());
+        assertEquals(500, recordList.size());
+
+        // first object
+        Record rec = recordList.get(0);
+        KatzoomImportObject kip = (KatzoomImportObject) rec.getObject();
+        assertEquals("1", rec.getId());
+        assertEquals(1, kip.getTotalPosition());
+        assertEquals("A", kip.getLetterName());
+        assertEquals(1, kip.getLetterPosition());
+        assertEquals("A", kip.getTrayName());
+        assertEquals(1, kip.getTrayPosition());
+
+        // last in 'A'
+        rec = recordList.get(199);
+        kip = (KatzoomImportObject) rec.getObject();
+        assertEquals("399", rec.getId());
+        assertEquals(200, kip.getTotalPosition());
+        assertEquals("A", kip.getLetterName());
+        assertEquals(200, kip.getLetterPosition());
+        assertEquals("Ahammer", kip.getTrayName());
+        assertEquals(12, kip.getTrayPosition());
+
+        // first in 'B'
+        rec = recordList.get(200);
+        kip = (KatzoomImportObject) rec.getObject();
+        assertEquals("401", rec.getId());
+        assertEquals("B", kip.getLetterName());
+        assertEquals(1, kip.getLetterPosition());
+
+        // last entry
+        rec = recordList.get(499);
+        kip = (KatzoomImportObject) rec.getObject();
+        assertEquals("999", rec.getId());
+        assertEquals(500, kip.getTotalPosition());
+        assertEquals("B", kip.getLetterName());
+        assertEquals(300, kip.getLetterPosition());
+        assertEquals("Amon", kip.getTrayName());
+        assertEquals(112, kip.getTrayPosition());
+
     }
 
 }

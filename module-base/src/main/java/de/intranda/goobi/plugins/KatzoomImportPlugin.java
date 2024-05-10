@@ -10,6 +10,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.TreeMap;
 import java.util.regex.MatchResult;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -24,7 +27,7 @@ import org.goobi.production.enums.PluginType;
 import org.goobi.production.importer.DocstructElement;
 import org.goobi.production.importer.ImportObject;
 import org.goobi.production.importer.Record;
-import org.goobi.production.plugin.interfaces.IImportPluginVersion2;
+import org.goobi.production.plugin.interfaces.IImportPluginVersion3;
 import org.goobi.production.properties.ImportProperty;
 
 import de.sub.goobi.config.ConfigPlugins;
@@ -43,7 +46,7 @@ import ugh.dl.Prefs;
 
 @PluginImplementation
 @Log4j2
-public class KatzoomImportPlugin implements IImportPluginVersion2 {
+public class KatzoomImportPlugin implements IImportPluginVersion3 {
 
     private static final long serialVersionUID = 163324837122210323L;
 
@@ -73,7 +76,7 @@ public class KatzoomImportPlugin implements IImportPluginVersion2 {
     private File file;
 
     @Setter
-    private String workflowTitle;
+    private String workflowName;
 
     private boolean runAsGoobiScript = false;
     private String collection;
@@ -103,7 +106,7 @@ public class KatzoomImportPlugin implements IImportPluginVersion2 {
 
         SubnodeConfiguration myconfig = null;
         try {
-            myconfig = xmlConfig.configurationAt("//config[./template = '" + workflowTitle + "']");
+            myconfig = xmlConfig.configurationAt("//config[./template = '" + workflowName + "']");
         } catch (IllegalArgumentException e) {
             myconfig = xmlConfig.configurationAt("//config[./template = '*']");
         }
@@ -131,8 +134,8 @@ public class KatzoomImportPlugin implements IImportPluginVersion2 {
      */
     @Override
     public List<ImportObject> generateFiles(List<Record> records) {
-        if (StringUtils.isBlank(workflowTitle)) {
-            workflowTitle = form.getTemplate().getTitel();
+        if (StringUtils.isBlank(workflowName)) {
+            workflowName = form.getTemplate().getTitel();
         }
         readConfig();
 
@@ -188,8 +191,6 @@ public class KatzoomImportPlugin implements IImportPluginVersion2 {
     @Override
     public List<Record> generateRecordsFromFilenames(List<String> indexes) {
         List<Record> records = new ArrayList<>();
-
-        //TODO
         // run through each selected index
         for (String index : indexes) {
             boolean backsideScanned = backsideScans.contains(index);
@@ -198,38 +199,117 @@ public class KatzoomImportPlugin implements IImportPluginVersion2 {
             // load *.lli file to check tray index (does not exist for every index)
             String letterIndexFile = null;
             String trayIndexFile = null;
-            for (String file : StorageProvider.getInstance().list(folder.toString(), NIOFileUtils.fileFilter)) {
-                if (file.endsWith(".ind") && !file.contains("adm")) {
-                    letterIndexFile = file;
-                } else if (file.endsWith(".lli")) {
-                    trayIndexFile = file;
+            for (String fileInFolder : StorageProvider.getInstance().list(folder.toString(), NIOFileUtils.fileFilter)) {
+                if (fileInFolder.endsWith(".ind") && !fileInFolder.contains("adm")) {
+                    letterIndexFile = fileInFolder;
+                } else if (fileInFolder.endsWith(".lli")) {
+                    trayIndexFile = fileInFolder;
                 }
             }
             List<LetterIndex> letterIndex = readLetterIndexFile(folder, letterIndexFile);
             List<TrayIndex> trayIndex = readTrayIndexFile(folder, trayIndexFile);
 
             // get the actual content from all sub folders
+            List<Path> allFiles = new ArrayList<>();
 
-            // order by name
+            try {
+                Files.find(folder, 5,
+                        (p, found) -> found.isRegularFile())
+                        .forEach(p -> allFiles.add(p));
+            } catch (IOException e) {
+                log.error(e);
+            }
 
-            // for each file prefix (or every second, if back side is scanned)
+            Map<Integer, List<String>> contentMap = new TreeMap<>(); // TreeMap to sort entries by key
+            // files always follow the pattern letter - number - .extension
 
-            // collect all files with the same prefix (and +1 if back is scanned)
+            for (Path p : allFiles) {
+                String filename = p.getFileName().toString();
+                if (filename.matches("\\w\\d+\\.\\w+")) {
+                    Integer id = Integer.parseInt(filename.substring(1, filename.indexOf(".")));
 
-            // create process
+                    // if back side was scanned and we have an even number, than the common identifier is number -1
+                    if (backsideScanned && (id % 2 == 0)) {
+                        id = id - 1;
+                    }
+                    // add file to the list grouped by the common number
+                    List<String> files = contentMap.getOrDefault(id, new ArrayList<>());
+                    files.add(p.toString());
+                    contentMap.put(id, files);
+                }
+            }
 
-            // get position in total index
+            int position = 0;
+            for (Entry<Integer, List<String>> entry : contentMap.entrySet()) {
+                // get position in total index
+                position++;
+                // find correct letter based on position
+                LetterIndex ind = findLetterIndexForPosition(position, letterIndex);
+                String currentLetter = ind.getLetter();
+                // get position within letter
+                int positionInLetterIndex = ind.getCurrentPosition();
+                ind.setCurrentPosition(positionInLetterIndex + 1);
 
-            // find correct letter based on position
+                // find correct tray based on position
+                TrayIndex ind2 = findTrayIndexForPosition(position, trayIndex);
 
-            // find correct tray based on position
+                String currentTray = "";
+                int positionInTrayIndex = 0;
+                if (ind2 != null) {
+                    currentTray = ind2.getTrayName();
+                    // get position within tray
+                    positionInTrayIndex = ind2.getCurrentPosition();
+                    ind2.setCurrentPosition(positionInTrayIndex + 1);
+                }
 
-            // get position within letter
+                KatzoomImportObject kip = new KatzoomImportObject();
+                kip.setId(entry.getKey());
+                kip.setTotalPosition(position);
 
-            // get position within tray
+                kip.setLetterName(currentLetter);
+                kip.setLetterPosition(positionInLetterIndex);
+
+                kip.setTrayName(currentTray);
+                kip.setTrayPosition(positionInTrayIndex);
+
+                kip.setFiles(entry.getValue());
+
+                Record rec = new Record();
+                rec.setId(String.valueOf(entry.getKey()));
+                rec.setData(rec.getId());
+                rec.setObject(kip);
+                records.add(rec);
+            }
         }
-
         return records;
+    }
+
+    private TrayIndex findTrayIndexForPosition(int position, List<TrayIndex> trayIndex) {
+        TrayIndex current = null;
+        if (position == 1) {
+            current = trayIndex.get(0);
+        } else {
+            for (TrayIndex li : trayIndex) {
+                if (position > li.getStartPosition()) {
+                    current = li;
+                }
+            }
+        }
+        return current;
+    }
+
+    private LetterIndex findLetterIndexForPosition(int position, List<LetterIndex> letterIndex) {
+        LetterIndex current = null;
+        if (position == 1) {
+            current = letterIndex.get(0);
+        } else {
+            for (LetterIndex li : letterIndex) {
+                if (position > li.getStartPosition()) {
+                    current = li;
+                }
+            }
+        }
+        return current;
     }
 
     private List<LetterIndex> readLetterIndexFile(Path folder, String indexFileName) {
@@ -244,7 +324,7 @@ public class KatzoomImportPlugin implements IImportPluginVersion2 {
             Matcher matcher = letterIndexFilePattern.matcher(indexFileContent);
             while (matcher.find()) {
                 MatchResult mr = matcher.toMatchResult();
-                index.add(new LetterIndex(mr.group(1), Integer.valueOf(mr.group(2))));
+                index.add(new LetterIndex(mr.group(1), Integer.valueOf(mr.group(2)), 1));
             }
 
         } catch (IOException e) {
@@ -273,7 +353,7 @@ public class KatzoomImportPlugin implements IImportPluginVersion2 {
                     String label = mr.group(2);
                     int startPosition = Integer.parseInt(mr.group(3));
                     int numberOfEntries = Integer.parseInt(mr.group(4));
-                    index.add(new TrayIndex(label, order, startPosition, numberOfEntries));
+                    index.add(new TrayIndex(label, order, startPosition, numberOfEntries, 1));
                 }
             }
 
