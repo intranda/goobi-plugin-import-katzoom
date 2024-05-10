@@ -1,0 +1,12 @@
+<config_plugin>
+	<config>
+
+		<!-- which workflow template shall be used -->
+		<template>*</template>
+		<!-- define if import shall use GoobiScript to run in the background -->
+		<runAsGoobiScript>true</runAsGoobiScript>
+
+
+        <importRootFolder>src/test/resources/data/</importRootFolder>
+	</config>
+</config_plugin>

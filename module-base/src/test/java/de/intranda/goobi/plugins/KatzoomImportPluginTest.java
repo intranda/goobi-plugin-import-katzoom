@@ -6,10 +6,8 @@ import static org.junit.Assert.assertNotNull;
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.List;
 
-import org.apache.commons.configuration.ConfigurationException;
-import org.apache.commons.configuration.XMLConfiguration;
-import org.apache.commons.configuration.reloading.FileChangedReloadingStrategy;
 import org.easymock.EasyMock;
 import org.goobi.production.enums.ImportType;
 import org.junit.Before;
@@ -23,10 +21,10 @@ import org.powermock.core.classloader.annotations.PowerMockIgnore;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 
-import de.sub.goobi.config.ConfigPlugins;
+import de.sub.goobi.config.ConfigurationHelper;
 
 @RunWith(PowerMockRunner.class)
-@PrepareForTest({ ConfigPlugins.class })
+@PrepareForTest({ ConfigurationHelper.class })
 @PowerMockIgnore({ "javax.management.*", "javax.net.ssl.*", "jdk.internal.reflect.*" })
 public class KatzoomImportPluginTest {
 
@@ -58,9 +56,14 @@ public class KatzoomImportPluginTest {
             resourcesFolder = "target/test-classes/"; // to run mvn test from cli or in jenkins
         }
 
-        PowerMock.mockStatic(ConfigPlugins.class);
-        EasyMock.expect(ConfigPlugins.getPluginConfig(EasyMock.anyString())).andReturn(getConfig()).anyTimes();
-        PowerMock.replay(ConfigPlugins.class);
+        PowerMock.mockStatic(ConfigurationHelper.class);
+
+        ConfigurationHelper configurationHelper = EasyMock.createMock(ConfigurationHelper.class);
+        EasyMock.expect(ConfigurationHelper.getInstance()).andReturn(configurationHelper).anyTimes();
+        EasyMock.expect(configurationHelper.getConfigurationFolder()).andReturn(resourcesFolder).anyTimes();
+        EasyMock.expect(configurationHelper.useS3()).andReturn(false).anyTimes();
+        EasyMock.replay(configurationHelper);
+        PowerMock.replay(ConfigurationHelper.class);
     }
 
     @Test
@@ -71,16 +74,12 @@ public class KatzoomImportPluginTest {
         plugin.setImportFolder(tempFolder.getAbsolutePath());
     }
 
-    private XMLConfiguration getConfig() {
-        String file = "plugin_intranda_import_katzoom.xml";
-        XMLConfiguration config = new XMLConfiguration();
-        config.setDelimiterParsingDisabled(true);
-        try {
-            config.load(resourcesFolder + file);
-        } catch (ConfigurationException e) {
-        }
-        config.setReloadingStrategy(new FileChangedReloadingStrategy());
-        return config;
+    @Test
+    public void testGetAllFilenames() {
+        KatzoomImportPlugin plugin = new KatzoomImportPlugin();
+        List<String> folderList = plugin.getAllFilenames();
+        assertEquals(1, folderList.size());
+        assertEquals("nka BKA Nominal", folderList.get(0));
     }
 
 }

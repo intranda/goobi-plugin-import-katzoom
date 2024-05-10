@@ -20,6 +20,7 @@ import org.goobi.production.properties.ImportProperty;
 
 import de.sub.goobi.config.ConfigPlugins;
 import de.sub.goobi.forms.MassImportForm;
+import de.sub.goobi.helper.StorageProvider;
 import de.sub.goobi.helper.exceptions.ImportPluginException;
 import lombok.Getter;
 import lombok.Setter;
@@ -67,6 +68,8 @@ public class KatzoomImportPlugin implements IImportPluginVersion2 {
     private boolean runAsGoobiScript = false;
     private String collection;
 
+    private String importRootFolder;
+
     /**
      * define what kind of import plugin this is
      */
@@ -93,6 +96,8 @@ public class KatzoomImportPlugin implements IImportPluginVersion2 {
         }
 
         if (myconfig != null) {
+            importRootFolder = myconfig.getString("/importRootFolder", "");
+
             runAsGoobiScript = myconfig.getBoolean("/runAsGoobiScript", false);
             collection = myconfig.getString("/collection", "");
         }
@@ -110,7 +115,6 @@ public class KatzoomImportPlugin implements IImportPluginVersion2 {
      * This method is used to actually create the Goobi processes this is done based on previously created records
      */
     @Override
-    @SuppressWarnings("unchecked")
     public List<ImportObject> generateFiles(List<Record> records) {
         if (StringUtils.isBlank(workflowTitle)) {
             workflowTitle = form.getTemplate().getTitel();
@@ -198,9 +202,9 @@ public class KatzoomImportPlugin implements IImportPluginVersion2 {
 
     @Override
     public List<String> getAllFilenames() {
+        readConfig();
         // display content of import folder, it should contain a list of all card indexes
-        //TODO
-        return null;
+        return StorageProvider.getInstance().list(importRootFolder);
     }
 
     @Override
