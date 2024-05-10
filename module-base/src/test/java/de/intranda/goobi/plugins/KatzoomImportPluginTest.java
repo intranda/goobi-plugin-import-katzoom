@@ -10,6 +10,7 @@ import java.util.List;
 
 import org.easymock.EasyMock;
 import org.goobi.production.enums.ImportType;
+import org.goobi.production.importer.Record;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
@@ -80,6 +81,14 @@ public class KatzoomImportPluginTest {
         List<String> folderList = plugin.getAllFilenames();
         assertEquals(1, folderList.size());
         assertEquals("nka BKA Nominal", folderList.get(0));
+    }
+
+    @Test
+    public void testGenerateRecordsFromFilenames() {
+        KatzoomImportPlugin plugin = new KatzoomImportPlugin();
+        List<String> folderList = plugin.getAllFilenames();
+        List<Record> recordList = plugin.generateRecordsFromFilenames(folderList);
+        assertEquals(0, recordList.size());
     }
 
 }

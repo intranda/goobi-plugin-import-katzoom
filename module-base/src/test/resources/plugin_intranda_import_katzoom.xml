@@ -6,7 +6,12 @@
 		<!-- define if import shall use GoobiScript to run in the background -->
 		<runAsGoobiScript>true</runAsGoobiScript>
 
-
+        <!-- root folder, contains all index folder -->
         <importRootFolder>src/test/resources/data/</importRootFolder>
+        
+        <!-- list all indexes where backside was scanned -->
+        <backsideScan>ank bis 45 Nominal</backsideScan>
+        <backsideScan>nka BKA Nominal</backsideScan>
+        <backsideScan>nka BKA Nominal</backsideScan>
 	</config>
 </config_plugin>
