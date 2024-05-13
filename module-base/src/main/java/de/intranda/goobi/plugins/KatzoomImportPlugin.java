@@ -22,12 +22,17 @@ import org.apache.commons.configuration.XMLConfiguration;
 import org.apache.commons.configuration.reloading.FileChangedReloadingStrategy;
 import org.apache.commons.configuration.tree.xpath.XPathExpressionEngine;
 import org.apache.commons.lang3.StringUtils;
+import org.goobi.interfaces.IArchiveManagementAdministrationPlugin;
+import org.goobi.interfaces.IEadEntry;
+import org.goobi.interfaces.INodeType;
 import org.goobi.production.enums.ImportType;
 import org.goobi.production.enums.PluginType;
 import org.goobi.production.importer.DocstructElement;
 import org.goobi.production.importer.ImportObject;
 import org.goobi.production.importer.Record;
+import org.goobi.production.plugin.PluginLoader;
 import org.goobi.production.plugin.interfaces.IImportPluginVersion3;
+import org.goobi.production.plugin.interfaces.IPlugin;
 import org.goobi.production.properties.ImportProperty;
 
 import de.sub.goobi.config.ConfigPlugins;
@@ -100,6 +105,9 @@ public class KatzoomImportPlugin implements IImportPluginVersion3 {
 
     private static Pattern letterIndexFilePattern = Pattern.compile("([A-Z]\\/?J?)\\s+(\\d+)");
     private static Pattern trayIndexFilePattern = Pattern.compile("(\\d+)\\s(\\w+)\\s(\\d+)\\s(\\d+)");
+
+    @Getter
+    private IArchiveManagementAdministrationPlugin archivePlugin;
 
     /**
      * define what kind of import plugin this is
@@ -281,6 +289,47 @@ public class KatzoomImportPlugin implements IImportPluginVersion3 {
         return answer;
     }
 
+    public void generateEadStructure(List<Record> records, String filename) {
+        String databaseName = "eadStore"; // TODO remove this, after
+
+        if (records.isEmpty()) {
+            return;
+        }
+        if (StringUtils.isEmpty(filename)) {
+            return;
+        }
+
+        IEadEntry rootEntry;
+
+        // open archive plugin, load ead file or create new one
+        if (archivePlugin == null) {
+            // find out if archive file is locked currently
+            IPlugin ia = PluginLoader.getPluginByTitle(PluginType.Administration, "intranda_administration_archive_management");
+            archivePlugin = (IArchiveManagementAdministrationPlugin) ia;
+
+            archivePlugin.setDatabaseName(databaseName);
+            archivePlugin.setFileName(filename);
+            archivePlugin.createNewDatabase();
+            rootEntry = archivePlugin.getRootElement();
+        }
+
+        INodeType fileType = null;
+        INodeType folderType = null;
+
+        for (INodeType nodeType : archivePlugin.getConfiguredNodes()) {
+            if ("folder".equals(nodeType.getNodeName())) {
+                folderType = nodeType;
+            } else if ("file".equals(nodeType.getNodeName())) {
+                fileType = nodeType;
+            }
+        }
+
+        for (Record rec : records) {
+            KatzoomImportObject kip = (KatzoomImportObject) rec.getObject();
+
+        }
+    }
+
     private Path copyFiles(List<String> files, String processName) throws IOException {
         // create folder structure
         Path processFolder = Paths.get(importFolder, processName);
@@ -407,19 +456,19 @@ public class KatzoomImportPlugin implements IImportPluginVersion3 {
                 }
             }
 
-            int position = 0;
+            int totalPosition = 0;
             for (Entry<Integer, List<String>> entry : contentMap.entrySet()) {
                 // get position in total index
-                position++;
+                totalPosition++;
                 // find correct letter based on position
-                LetterIndex ind = findLetterIndexForPosition(position, letterIndex);
+                LetterIndex ind = findLetterIndexForPosition(totalPosition, letterIndex);
                 String currentLetter = ind.getLetter();
                 // get position within letter
                 int positionInLetterIndex = ind.getCurrentPosition();
                 ind.setCurrentPosition(positionInLetterIndex + 1);
 
                 // find correct tray based on position
-                TrayIndex ind2 = findTrayIndexForPosition(position, trayIndex);
+                TrayIndex ind2 = findTrayIndexForPosition(totalPosition, trayIndex);
 
                 String currentTray = "";
                 int positionInTrayIndex = 0;
@@ -432,7 +481,7 @@ public class KatzoomImportPlugin implements IImportPluginVersion3 {
 
                 KatzoomImportObject kip = new KatzoomImportObject();
                 kip.setId(entry.getKey());
-                kip.setTotalPosition(position);
+                kip.setTotalPosition(totalPosition);
 
                 kip.setLetterName(currentLetter);
                 kip.setLetterPosition(positionInLetterIndex);
@@ -448,7 +497,9 @@ public class KatzoomImportPlugin implements IImportPluginVersion3 {
                 rec.setObject(kip);
                 records.add(rec);
             }
+            //  generateEadStructure(records, index);
         }
+
         return records;
     }
 

@@ -2,18 +2,25 @@ package de.intranda.goobi.plugins;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.easymock.EasyMock;
+import org.goobi.interfaces.IArchiveManagementAdministrationPlugin;
+import org.goobi.interfaces.IEadEntry;
+import org.goobi.interfaces.INodeType;
 import org.goobi.production.enums.ImportType;
+import org.goobi.production.enums.PluginType;
 import org.goobi.production.importer.ImportObject;
 import org.goobi.production.importer.Record;
+import org.goobi.production.plugin.PluginLoader;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
@@ -32,7 +39,7 @@ import ugh.dl.Prefs;
 import ugh.fileformats.mets.MetsMods;
 
 @RunWith(PowerMockRunner.class)
-@PrepareForTest({ ConfigurationHelper.class })
+@PrepareForTest({ ConfigurationHelper.class, PluginLoader.class })
 @PowerMockIgnore({ "javax.management.*", "javax.net.ssl.*", "jdk.internal.reflect.*" })
 public class KatzoomImportPluginTest {
 
@@ -72,6 +79,7 @@ public class KatzoomImportPluginTest {
         EasyMock.expect(configurationHelper.useS3()).andReturn(false).anyTimes();
         EasyMock.replay(configurationHelper);
         PowerMock.replay(ConfigurationHelper.class);
+
     }
 
     @Test
@@ -210,6 +218,61 @@ public class KatzoomImportPluginTest {
         md = logical.getAllMetadata().get(7);
         assertEquals("TrayPosition", md.getType().getName());
         assertEquals("1", md.getValue());
+    }
+
+    @Test
+    public void testCreateEadStructure() {
+        mockArchivePlugin();
+
+        KatzoomImportPlugin plugin = new KatzoomImportPlugin();
+        List<String> folderList = plugin.getAllFilenames();
+        List<Record> recordList = plugin.generateRecordsFromFilenames(folderList);
+
+        IArchiveManagementAdministrationPlugin archive = plugin.getArchivePlugin();
+        assertNull(archive);
+
+        // empty list, archive is not initialized
+        plugin.generateEadStructure(new ArrayList<>(), "sample");
+        archive = plugin.getArchivePlugin();
+        assertNull(archive);
+
+        // no file name, archive is not initialized
+        plugin.generateEadStructure(recordList, "");
+        archive = plugin.getArchivePlugin();
+        assertNull(archive);
+
+        // valid parameter, archive can be initialized
+        plugin.generateEadStructure(recordList, "sample");
+        archive = plugin.getArchivePlugin();
+        assertNotNull(archive);
 
     }
+
+    private void mockArchivePlugin() {
+        PowerMock.mockStatic(PluginLoader.class);
+        IArchiveManagementAdministrationPlugin plugin = EasyMock.createMock(IArchiveManagementAdministrationPlugin.class);
+        IEadEntry rootElement = EasyMock.createMock(IEadEntry.class);
+
+        EasyMock.expect(PluginLoader.getPluginByTitle(PluginType.Administration, "intranda_administration_archive_management"))
+                .andReturn(plugin)
+                .anyTimes();
+        plugin.setDatabaseName(EasyMock.anyString());
+        plugin.setFileName(EasyMock.anyString());
+        plugin.createNewDatabase();
+        EasyMock.expect(plugin.getRootElement()).andReturn(rootElement).anyTimes();
+
+        INodeType t1 = EasyMock.createMock(INodeType.class);
+        INodeType t2 = EasyMock.createMock(INodeType.class);
+        List<INodeType> lst = new ArrayList<>();
+        lst.add(t1);
+        lst.add(t2);
+
+        EasyMock.expect(plugin.getConfiguredNodes()).andReturn(lst).anyTimes();
+        EasyMock.expect(t1.getNodeName()).andReturn("folder").anyTimes();
+        EasyMock.expect(t2.getNodeName()).andReturn("file").anyTimes();
+
+        EasyMock.replay(t1, t2, rootElement, plugin);
+        PowerMock.replay(PluginLoader.class);
+    }
+
 }

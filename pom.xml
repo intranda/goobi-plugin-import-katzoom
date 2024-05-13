@@ -25,5 +25,12 @@
       <version>${project.version}</version>
       <classifier>classes</classifier>
     </dependency>
+    <dependency>
+      <groupId>io.goobi.workflow.plugin</groupId>
+      <artifactId>plugin-administration-archive-management-lib</artifactId>
+      <version>24.04.2</version>
+      <scope>provided</scope>
+    </dependency>
+
   </dependencies>
 </project>
