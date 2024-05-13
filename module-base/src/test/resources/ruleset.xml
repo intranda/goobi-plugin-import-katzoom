@@ -1651,7 +1651,6 @@ sinnvoll. Wie umsetzbar? Alle weiteren Adressen in ein gemeinsames Textfeld schr
     <language name="en">Note</language>
     <metadata num="*">_ucc_id</metadata>
     <metadata num="1o">_urn</metadata>
-    
     <metadata num="1m">CatalogIDDigital</metadata>
     <metadata num="1o">singleDigCollection</metadata>
     <metadata num="1m">FolderStructure</metadata>
@@ -1660,8 +1659,9 @@ sinnvoll. Wie umsetzbar? Alle weiteren Adressen in ein gemeinsames Textfeld schr
     <metadata num="1m">LetterPosition</metadata>
     <metadata num="1o">Tray</metadata>
     <metadata num="1o">TrayPosition</metadata>
-    
   </DocStrctType>
+
+<!-- // Katzoom -->
 
   <DocStrctType>
     <Name>BuchspiegelVorne</Name>
@@ -7222,6 +7222,40 @@ sinnvoll. Wie umsetzbar? Alle weiteren Adressen in ein gemeinsames Textfeld schr
         <WriteXPath>./mods:mods/mods:subject/mods:titleInfo/#mods:title</WriteXPath>
       </Metadata>
       <!-- Subjects end -->
+
+    <!-- Katzoom start -->
+
+    <Metadata>
+        <InternalName>FolderStructure</InternalName>
+        <WriteXPath>./mods:mods/#mods:note[@type='original location']</WriteXPath>
+    </Metadata>
+
+    <Metadata>
+        <InternalName>TotalPosition</InternalName>
+        <WriteXPath>./mods:mods/#mods:part[@type='total']/mods:detail/mods:number</WriteXPath>
+    </Metadata>
+
+    <Metadata>
+        <InternalName>Letter</InternalName>
+        <WriteXPath>./mods:mods/mods:relatedItem[@type='series'][@otherType='letter']/mods:titleInfo/#mods:title</WriteXPath>
+    </Metadata>
+
+    <Metadata>
+        <InternalName>LetterPosition</InternalName>
+        <WriteXPath>./mods:mods/mods:relatedItem[@type='series'][@otherType='letter']/#mods:part[@type='letter']/mods:detail/mods:number</WriteXPath>
+    </Metadata>
+
+    <Metadata>
+        <InternalName>Tray</InternalName>
+        <WriteXPath>./mods:mods/mods:relatedItem[@type='series'][@otherType='tray']/mods:titleInfo/#mods:title</WriteXPath>
+    </Metadata>
+
+    <Metadata>
+        <InternalName>TrayPosition</InternalName>
+        <WriteXPath>./mods:mods/mods:relatedItem[@type='series'][@otherType='tray']/#mods:part[@type='tray']/mods:detail/mods:number</WriteXPath>
+    </Metadata>
+    <!-- // Katzoom end -->
+      
       <!-- Docstructs -->
       <DocStruct>
         <InternalName>BuchspiegelVorne</InternalName>
