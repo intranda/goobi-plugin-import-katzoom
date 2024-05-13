@@ -21,6 +21,7 @@ import org.apache.commons.configuration.SubnodeConfiguration;
 import org.apache.commons.configuration.XMLConfiguration;
 import org.apache.commons.configuration.reloading.FileChangedReloadingStrategy;
 import org.apache.commons.configuration.tree.xpath.XPathExpressionEngine;
+import org.apache.commons.lang3.StringUtils;
 import org.goobi.production.enums.ImportType;
 import org.goobi.production.enums.PluginType;
 import org.goobi.production.importer.DocstructElement;
@@ -84,6 +85,14 @@ public class KatzoomImportPlugin implements IImportPluginVersion3 {
 
     private boolean runAsGoobiScript = false;
     private String collection;
+    private String doctype;
+
+    private String folderStructure;
+    private String letter;
+    private String letterPosition;
+    private String tray;
+    private String trayPosition;
+    private String position;
 
     private String importRootFolder;
 
@@ -122,6 +131,15 @@ public class KatzoomImportPlugin implements IImportPluginVersion3 {
             collection = myconfig.getString("/collection", "");
 
             backsideScans = Arrays.asList(myconfig.getStringArray("/backsideScan"));
+
+            doctype = myconfig.getString("/doctype");
+            folderStructure = myconfig.getString("/folderStructure");
+            letter = myconfig.getString("/letter");
+            letterPosition = myconfig.getString("/letterPosition");
+            tray = myconfig.getString("/tray");
+            trayPosition = myconfig.getString("/trayPosition");
+            position = myconfig.getString("/position");
+
         }
     }
 
@@ -142,6 +160,22 @@ public class KatzoomImportPlugin implements IImportPluginVersion3 {
         readConfig();
         List<ImportObject> answer = new ArrayList<>();
 
+        // some general preparations
+        DocStructType physicalType = prefs.getDocStrctTypeByName("BoundBook");
+        DocStructType logicalType = prefs.getDocStrctTypeByName(doctype);
+        DocStructType pageType = prefs.getDocStrctTypeByName("page");
+
+        MetadataType pathimagefilesType = prefs.getMetadataTypeByName("pathimagefiles");
+        MetadataType idType = prefs.getMetadataTypeByName("CatalogIDDigital");
+        MetadataType collectionType = prefs.getMetadataTypeByName("singleDigCollection");
+
+        MetadataType folderStructureType = prefs.getMetadataTypeByName(folderStructure);
+        MetadataType letterType = prefs.getMetadataTypeByName(letter);
+        MetadataType letterPositionType = prefs.getMetadataTypeByName(letterPosition);
+        MetadataType trayType = prefs.getMetadataTypeByName(tray);
+        MetadataType trayPositionType = prefs.getMetadataTypeByName(trayPosition);
+        MetadataType positionType = prefs.getMetadataTypeByName(position);
+
         for (Record rec : records) {
             ImportObject io = new ImportObject();
 
@@ -161,14 +195,6 @@ public class KatzoomImportPlugin implements IImportPluginVersion3 {
             String last = folder.getFileName().toString();
             String prev = folder.getParent().getFileName().toString();
             String third = folder.getParent().getParent().getFileName().toString();
-
-            // some general preparations
-            DocStructType physicalType = prefs.getDocStrctTypeByName("BoundBook");
-            DocStructType logicalType = prefs.getDocStrctTypeByName("Monograph"); // TODO get from config? Different type?
-            DocStructType pageType = prefs.getDocStrctTypeByName("page");
-
-            MetadataType pathimagefilesType = prefs.getMetadataTypeByName("pathimagefiles");
-            MetadataType idType = prefs.getMetadataTypeByName("CatalogIDDigital");
             try {
                 Fileformat fileformat = new MetsMods(prefs);
                 DigitalDocument dd = new DigitalDocument();
@@ -176,9 +202,42 @@ public class KatzoomImportPlugin implements IImportPluginVersion3 {
 
                 DocStruct logical = dd.createDocStruct(logicalType);
                 dd.setLogicalDocStruct(logical);
+                // identifier
                 Metadata id = new Metadata(idType);
                 id.setValue(processName);
                 logical.addMetadata(id);
+                // collection
+                if (StringUtils.isNotBlank(collection)) {
+                    Metadata md = new Metadata(collectionType);
+                    md.setValue(collection);
+                    logical.addMetadata(md);
+                }
+
+                // folder structure
+                Metadata folderMd = new Metadata(folderStructureType);
+                folderMd.setValue(third + "/" + prev + "/" + last);
+                logical.addMetadata(folderMd);
+                // letter
+                Metadata letterMd = new Metadata(letterType);
+                letterMd.setValue(kip.getLetterName());
+                logical.addMetadata(letterMd);
+                Metadata letterPos = new Metadata(letterPositionType);
+                letterPos.setValue(String.valueOf(kip.getLetterPosition()));
+                logical.addMetadata(letterPos);
+                // tray
+                if (StringUtils.isNotBlank(kip.getTrayName())) {
+                    Metadata trayMd = new Metadata(trayType);
+                    trayMd.setValue(kip.getTrayName());
+                    logical.addMetadata(trayMd);
+                    Metadata trayPositionMd = new Metadata(trayPositionType);
+                    trayPositionMd.setValue(String.valueOf(kip.getTrayPosition()));
+                    logical.addMetadata(trayPositionMd);
+                }
+
+                // position
+                Metadata pos = new Metadata(positionType);
+                pos.setValue(String.valueOf(kip.getTotalPosition()));
+                logical.addMetadata(pos);
 
                 DocStruct physical = dd.createDocStruct(physicalType);
                 dd.setPhysicalDocStruct(physical);

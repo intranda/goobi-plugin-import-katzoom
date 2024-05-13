@@ -26,6 +26,8 @@ import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 
 import de.sub.goobi.config.ConfigurationHelper;
+import ugh.dl.DocStruct;
+import ugh.dl.Metadata;
 import ugh.dl.Prefs;
 import ugh.fileformats.mets.MetsMods;
 
@@ -162,11 +164,52 @@ public class KatzoomImportPluginTest {
         // read metadata
         MetsMods mm = new MetsMods(prefs);
         mm.read(io.getMetsFilename());
+        DocStruct logical = mm.getDigitalDocument().getLogicalDocStruct();
+        assertEquals("Note", logical.getType().getName());
 
         // two page elements where created for b0000001.tif and b0000002.tif
         assertEquals(2, mm.getDigitalDocument().getPhysicalDocStruct().getAllChildren().size());
         assertEquals("b0000001.tif", mm.getDigitalDocument().getPhysicalDocStruct().getAllChildren().get(0).getImageName());
         assertEquals("b0000002.tif", mm.getDigitalDocument().getPhysicalDocStruct().getAllChildren().get(1).getImageName());
+
+        // metadata
+        assertEquals(8, logical.getAllMetadata().size());
+
+        // identifier
+        Metadata md = logical.getAllMetadata().get(0);
+        assertEquals("CatalogIDDigital", md.getType().getName());
+        assertEquals("b0000001", md.getValue());
+
+        // collection
+        md = logical.getAllMetadata().get(1);
+        assertEquals("singleDigCollection", md.getType().getName());
+        assertEquals("Zettelkatalog", md.getValue());
+
+        // structure
+        md = logical.getAllMetadata().get(2);
+        assertEquals("FolderStructure", md.getType().getName());
+        assertEquals("m001/z001/h001", md.getValue());
+
+        // total pos
+        md = logical.getAllMetadata().get(3);
+        assertEquals("TotalPosition", md.getType().getName());
+        assertEquals("1", md.getValue());
+
+        // letter
+        md = logical.getAllMetadata().get(4);
+        assertEquals("Letter", md.getType().getName());
+        assertEquals("A", md.getValue());
+        md = logical.getAllMetadata().get(5);
+        assertEquals("LetterPosition", md.getType().getName());
+        assertEquals("1", md.getValue());
+
+        // tray
+        md = logical.getAllMetadata().get(6);
+        assertEquals("Tray", md.getType().getName());
+        assertEquals("A", md.getValue());
+        md = logical.getAllMetadata().get(7);
+        assertEquals("TrayPosition", md.getType().getName());
+        assertEquals("1", md.getValue());
 
     }
 }

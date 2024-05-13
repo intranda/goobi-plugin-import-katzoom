@@ -1611,6 +1611,58 @@ sinnvoll. Wie umsetzbar? Alle weiteren Adressen in ein gemeinsames Textfeld schr
   </MetadataType>
 
 
+    <!-- Katzoom metadata -->
+
+   <MetadataType>
+    <Name>FolderStructure</Name>
+    <language name="de">Ordner</language>
+    <language name="en">folder</language>
+  </MetadataType>
+   <MetadataType>
+    <Name>TotalPosition</Name>
+    <language name="de">Position (absolut)</language>
+    <language name="en">Position (total)</language>
+  </MetadataType>
+     <MetadataType>
+    <Name>Letter</Name>
+    <language name="de">Buchstabe</language>
+    <language name="en">Letter</language>
+  </MetadataType>
+     <MetadataType>
+    <Name>LetterPosition</Name>
+    <language name="de">Position (Buchstabe)</language>
+    <language name="en">Position (letter)</language>
+  </MetadataType>
+     <MetadataType>
+    <Name>Tray</Name>
+    <language name="de">Lade</language>
+    <language name="en">Tray</language>
+  </MetadataType>
+     <MetadataType>
+    <Name>TrayPosition</Name>
+    <language name="de">Position (Lade)</language>
+    <language name="en">Position (tray)</language>
+  </MetadataType>
+  
+
+ <DocStrctType topStruct="true">
+    <Name>Note</Name>
+    <language name="de">Zettel</language>
+    <language name="en">Note</language>
+    <metadata num="*">_ucc_id</metadata>
+    <metadata num="1o">_urn</metadata>
+    
+    <metadata num="1m">CatalogIDDigital</metadata>
+    <metadata num="1o">singleDigCollection</metadata>
+    <metadata num="1m">FolderStructure</metadata>
+    <metadata num="1m">TotalPosition</metadata>
+    <metadata num="1m">Letter</metadata>
+    <metadata num="1m">LetterPosition</metadata>
+    <metadata num="1o">Tray</metadata>
+    <metadata num="1o">TrayPosition</metadata>
+    
+  </DocStrctType>
+
   <DocStrctType>
     <Name>BuchspiegelVorne</Name>
     <language name="de">Vorderer Buchspiegel</language>
