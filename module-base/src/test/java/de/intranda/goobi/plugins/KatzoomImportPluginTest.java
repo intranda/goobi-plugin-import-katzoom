@@ -281,6 +281,7 @@ public class KatzoomImportPluginTest {
             rootElement.setNodeType(EasyMock.anyObject());
             plugin.setSelectedEntry(EasyMock.anyObject());
             plugin.addNode();
+            rootElement.setGoobiProcessTitle(EasyMock.anyString());
             val.setValue(EasyMock.anyString());
         }
         EasyMock.expect(field.getValues()).andReturn(valList).anyTimes();
