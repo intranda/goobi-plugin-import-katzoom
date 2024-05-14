@@ -24,6 +24,7 @@ import org.apache.commons.configuration.tree.xpath.XPathExpressionEngine;
 import org.apache.commons.lang3.StringUtils;
 import org.goobi.interfaces.IArchiveManagementAdministrationPlugin;
 import org.goobi.interfaces.IEadEntry;
+import org.goobi.interfaces.IMetadataField;
 import org.goobi.interfaces.INodeType;
 import org.goobi.production.enums.ImportType;
 import org.goobi.production.enums.PluginType;
@@ -88,7 +89,6 @@ public class KatzoomImportPlugin implements IImportPluginVersion3 {
     @Setter
     private String workflowName;
 
-    private boolean runAsGoobiScript = false;
     private String collection;
     private String doctype;
 
@@ -100,7 +100,9 @@ public class KatzoomImportPlugin implements IImportPluginVersion3 {
     private String position;
 
     private String importRootFolder;
-
+    // remove this after plugin changes from basex to database store
+    private String eadDatabaseName;
+    private boolean generateEadFile;
     private List<String> backsideScans;
 
     private static Pattern letterIndexFilePattern = Pattern.compile("([A-Z]\\/?J?)\\s+(\\d+)");
@@ -135,7 +137,9 @@ public class KatzoomImportPlugin implements IImportPluginVersion3 {
         if (myconfig != null) {
             importRootFolder = myconfig.getString("/importRootFolder", "");
 
-            runAsGoobiScript = myconfig.getBoolean("/runAsGoobiScript", false);
+            eadDatabaseName = myconfig.getString("/eadDatabaseName", "eadStore");
+            generateEadFile = myconfig.getBoolean("/generateEadFile", true);
+
             collection = myconfig.getString("/collection", "");
 
             backsideScans = Arrays.asList(myconfig.getStringArray("/backsideScan"));
@@ -193,7 +197,7 @@ public class KatzoomImportPlugin implements IImportPluginVersion3 {
             Collections.sort(files);
             String filename = files.get(0);
             // get process title
-            String processName = filename.substring(filename.lastIndexOf("/") + 1, filename.indexOf("."));
+            String processName = kip.getLabel();
             io.setProcessTitle(processName);
 
             io.setMetsFilename(importFolder + "/" + processName + ".xml");
@@ -290,7 +294,6 @@ public class KatzoomImportPlugin implements IImportPluginVersion3 {
     }
 
     public void generateEadStructure(List<Record> records, String filename) {
-        String databaseName = "eadStore"; // TODO remove this, after
 
         if (records.isEmpty()) {
             return;
@@ -299,20 +302,23 @@ public class KatzoomImportPlugin implements IImportPluginVersion3 {
             return;
         }
 
-        IEadEntry rootEntry;
+        // open archive plugin, create new ead file
 
-        // open archive plugin, load ead file or create new one
-        if (archivePlugin == null) {
-            // find out if archive file is locked currently
-            IPlugin ia = PluginLoader.getPluginByTitle(PluginType.Administration, "intranda_administration_archive_management");
-            archivePlugin = (IArchiveManagementAdministrationPlugin) ia;
+        IPlugin ia = PluginLoader.getPluginByTitle(PluginType.Administration, "intranda_administration_archive_management");
+        archivePlugin = (IArchiveManagementAdministrationPlugin) ia;
 
-            archivePlugin.setDatabaseName(databaseName);
-            archivePlugin.setFileName(filename);
-            archivePlugin.createNewDatabase();
-            rootEntry = archivePlugin.getRootElement();
+        archivePlugin.setDatabaseName(eadDatabaseName);
+        archivePlugin.setFileName(filename);
+        archivePlugin.createNewDatabase();
+        IEadEntry rootEntry = archivePlugin.getRootElement();
+        for (IMetadataField meta : rootEntry.getIdentityStatementAreaList()) {
+            if ("unittitle".equals(meta.getName())) {
+                if (!meta.isFilled()) {
+                    meta.addValue();
+                }
+                meta.getValues().get(0).setValue(filename);
+            }
         }
-
         INodeType fileType = null;
         INodeType folderType = null;
 
@@ -326,8 +332,85 @@ public class KatzoomImportPlugin implements IImportPluginVersion3 {
 
         for (Record rec : records) {
             KatzoomImportObject kip = (KatzoomImportObject) rec.getObject();
+            // find subnode in root for current letter
+            IEadEntry letterNode = null;
+            IEadEntry trayNode = null;
+            for (IEadEntry e : rootEntry.getSubEntryList()) {
+                if (e.getLabel().equals(kip.getLetterName())) {
+                    letterNode = e;
+                    break;
+                }
+            }
+            // if subnode does not exist, create it
+            if (letterNode == null) {
+                // select root entry
+                archivePlugin.setSelectedEntry(rootEntry);
+                // create new node
+                archivePlugin.addNode();
+                letterNode = archivePlugin.getSelectedEntry();
+                letterNode.setNodeType(folderType);
 
+                for (IMetadataField meta : letterNode.getIdentityStatementAreaList()) {
+                    if ("unittitle".equals(meta.getName())) {
+                        if (!meta.isFilled()) {
+                            meta.addValue();
+                        }
+                        meta.getValues().get(0).setValue(kip.getLetterName());
+                    }
+                }
+
+            }
+            // if current data uses trays
+            if (StringUtils.isNotBlank(kip.getTrayName())) {
+                // find tray node in letter sub nodes
+                for (IEadEntry e : letterNode.getSubEntryList()) {
+                    if (e.getLabel().equals(kip.getTrayName())) {
+                        trayNode = e;
+                        break;
+                    }
+                }
+                // if subnode does not exist, create it
+                if (trayNode == null) {
+                    // select root entry
+                    archivePlugin.setSelectedEntry(letterNode);
+                    // create new node
+                    archivePlugin.addNode();
+                    trayNode = archivePlugin.getSelectedEntry();
+                    trayNode.setNodeType(folderType);
+
+                    for (IMetadataField meta : trayNode.getIdentityStatementAreaList()) {
+                        if ("unittitle".equals(meta.getName())) {
+                            if (!meta.isFilled()) {
+                                meta.addValue();
+                            }
+                            meta.getValues().get(0).setValue(kip.getTrayName());
+                        }
+                    }
+                }
+            }
+            // create new node within subnode
+
+            if (trayNode != null) {
+                archivePlugin.setSelectedEntry(trayNode);
+            } else {
+                archivePlugin.setSelectedEntry(letterNode);
+            }
+            archivePlugin.addNode();
+            IEadEntry node = archivePlugin.getSelectedEntry();
+            node.setNodeType(fileType);
+            node.setGoobiProcessTitle(kip.getLabel());
+
+            for (IMetadataField meta : node.getIdentityStatementAreaList()) {
+                if ("unittitle".equals(meta.getName()) || "unitid".equals(meta.getName())) {
+                    if (!meta.isFilled()) {
+                        meta.addValue();
+                    }
+                    meta.getValues().get(0).setValue(kip.getLabel());
+                }
+            }
         }
+        // save ead file
+        archivePlugin.createEadDocument();
     }
 
     private Path copyFiles(List<String> files, String processName) throws IOException {
@@ -370,8 +453,7 @@ public class KatzoomImportPlugin implements IImportPluginVersion3 {
      */
     @Override
     public boolean isRunnableAsGoobiScript() {
-        readConfig();
-        return runAsGoobiScript;
+        return false;
     }
 
     /* *************************************************************** */
@@ -491,13 +573,21 @@ public class KatzoomImportPlugin implements IImportPluginVersion3 {
 
                 kip.setFiles(entry.getValue());
 
+                List<String> files = kip.getFiles();
+                Collections.sort(files);
+                String filename = files.get(0);
+                // get process title
+                String processName = filename.substring(filename.lastIndexOf("/") + 1, filename.indexOf("."));
+                kip.setLabel(processName);
                 Record rec = new Record();
                 rec.setId(String.valueOf(entry.getKey()));
                 rec.setData(rec.getId());
                 rec.setObject(kip);
                 records.add(rec);
             }
-            //  generateEadStructure(records, index);
+            if (generateEadFile) {
+                generateEadStructure(records, index);
+            }
         }
 
         return records;

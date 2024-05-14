@@ -16,6 +16,8 @@ public class KatzoomImportObject implements Serializable {
 
     private int id;
 
+    private String label;
+
     private int totalPosition;
 
     private String letterName;

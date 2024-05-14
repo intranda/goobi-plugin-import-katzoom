@@ -4,8 +4,11 @@
         <!-- which workflow template shall be used -->
         <template>*</template>
         <!-- define if import shall use GoobiScript to run in the background -->
-        <runAsGoobiScript>true</runAsGoobiScript>
-
+        <runAsGoobiScript>false</runAsGoobiScript>
+        
+        <eadDatabaseName>basexdb</eadDatabaseName>
+        <generateEadFile>false</generateEadFile>
+        
         <!-- root folder, contains all index folder -->
         <importRootFolder>src/test/resources/data/</importRootFolder>
 

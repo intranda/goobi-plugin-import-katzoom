@@ -15,6 +15,8 @@ import java.util.List;
 import org.easymock.EasyMock;
 import org.goobi.interfaces.IArchiveManagementAdministrationPlugin;
 import org.goobi.interfaces.IEadEntry;
+import org.goobi.interfaces.IFieldValue;
+import org.goobi.interfaces.IMetadataField;
 import org.goobi.interfaces.INodeType;
 import org.goobi.production.enums.ImportType;
 import org.goobi.production.enums.PluginType;
@@ -253,6 +255,12 @@ public class KatzoomImportPluginTest {
         IArchiveManagementAdministrationPlugin plugin = EasyMock.createMock(IArchiveManagementAdministrationPlugin.class);
         IEadEntry rootElement = EasyMock.createMock(IEadEntry.class);
 
+        IEadEntry letterElement = EasyMock.createMock(IEadEntry.class);
+        IEadEntry trayElement = EasyMock.createMock(IEadEntry.class);
+        List<IEadEntry> letters = new ArrayList<>();
+        letters.add(letterElement);
+        List<IEadEntry> trays = new ArrayList<>();
+        trays.add(trayElement);
         EasyMock.expect(PluginLoader.getPluginByTitle(PluginType.Administration, "intranda_administration_archive_management"))
                 .andReturn(plugin)
                 .anyTimes();
@@ -261,17 +269,42 @@ public class KatzoomImportPluginTest {
         plugin.createNewDatabase();
         EasyMock.expect(plugin.getRootElement()).andReturn(rootElement).anyTimes();
 
+        EasyMock.expect(plugin.getSelectedEntry()).andReturn(rootElement).anyTimes();
+        IMetadataField field = EasyMock.createMock(IMetadataField.class);
+        EasyMock.expect(field.getName()).andReturn("unittitle").anyTimes();
+        EasyMock.expect(field.isFilled()).andReturn(true).anyTimes();
+
+        IFieldValue val = EasyMock.createMock(IFieldValue.class);
+        List<IFieldValue> valList = new ArrayList<>();
+        valList.add(val);
+        for (int i = 0; i < 1200; i++) {
+            rootElement.setNodeType(EasyMock.anyObject());
+            plugin.setSelectedEntry(EasyMock.anyObject());
+            plugin.addNode();
+            val.setValue(EasyMock.anyString());
+        }
+        EasyMock.expect(field.getValues()).andReturn(valList).anyTimes();
+        List<IMetadataField> fields = new ArrayList<>();
+        fields.add(field);
+
+        EasyMock.expect(rootElement.getIdentityStatementAreaList()).andReturn(fields).anyTimes();
+        EasyMock.expect(rootElement.getSubEntryList()).andReturn(letters).anyTimes();
+        EasyMock.expect(letterElement.getLabel()).andReturn("A").anyTimes();
+        EasyMock.expect(letterElement.getSubEntryList()).andReturn(trays).anyTimes();
+        EasyMock.expect(trayElement.getLabel()).andReturn("A").anyTimes();
         INodeType t1 = EasyMock.createMock(INodeType.class);
         INodeType t2 = EasyMock.createMock(INodeType.class);
         List<INodeType> lst = new ArrayList<>();
         lst.add(t1);
         lst.add(t2);
 
+        plugin.createEadDocument();
+
         EasyMock.expect(plugin.getConfiguredNodes()).andReturn(lst).anyTimes();
         EasyMock.expect(t1.getNodeName()).andReturn("folder").anyTimes();
         EasyMock.expect(t2.getNodeName()).andReturn("file").anyTimes();
 
-        EasyMock.replay(t1, t2, rootElement, plugin);
+        EasyMock.replay(t1, t2, rootElement, plugin, field, val, letterElement, trayElement);
         PowerMock.replay(PluginLoader.class);
     }
 

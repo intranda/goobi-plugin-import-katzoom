@@ -1,15 +1,40 @@
 <config_plugin>
-	<config>
+    <config>
 
-		<!-- which workflow template shall be used -->
-		<template>*</template>
+        <!-- which workflow template shall be used -->
+        <template>*</template>
+        <!-- define if import shall use GoobiScript to run in the background -->
+        <runAsGoobiScript>false</runAsGoobiScript>
+        
+        <eadDatabaseName>eadStore</eadDatabaseName>
+        <generateEadFile>true</generateEadFile>
+        
+        <!-- root folder, contains all index folder -->
+        <importRootFolder>/opt/digiverso/import/</importRootFolder>
 
-		<!-- which digital collection to use 
-		<collection>General</collection> 
-		-->
+        <!-- list all indexes where backside was scanned -->
+        <backsideScan>ask bis 45 Schlagwort</backsideScan>
+        <backsideScan>ssk ÖSTA Schlagwort</backsideScan>
+        <backsideScan>swk BKA Schlagwort</backsideScan>
+        <backsideScan>ank bis 45 Nominal</backsideScan>
+        <backsideScan>nka BKA Nominal</backsideScan>
+        <!-- collection name -->
+        <collection>Zettelkatalog</collection>
+        <!-- docstruct type -->
+        <doctype>Note</doctype>
 
-		<!-- define if import shall use GoobiScript to run in the background -->
-		<runAsGoobiScript>true</runAsGoobiScript>
-
-	</config>
+        <!-- metadata -->
+        <!-- contains the folder structure -->
+        <folderStructure>FolderStructure</folderStructure>
+        <!-- contains the total position -->
+        <position>TotalPosition</position>
+        <!-- assigned letter -->
+        <letter>Letter</letter>
+        <!-- position within the letter -->
+        <letterPosition>LetterPosition</letterPosition>
+        <!-- assigned tray -->
+        <tray>Tray</tray>
+        <!-- position within tray -->
+        <trayPosition>TrayPosition</trayPosition>
+    </config>
 </config_plugin>
