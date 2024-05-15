@@ -310,15 +310,6 @@ public class KatzoomImportPlugin implements IImportPluginVersion3 {
         archivePlugin.setDatabaseName(eadDatabaseName);
         archivePlugin.setFileName(filename);
         archivePlugin.createNewDatabase();
-        IEadEntry rootEntry = archivePlugin.getRootElement();
-        for (IMetadataField meta : rootEntry.getIdentityStatementAreaList()) {
-            if ("unittitle".equals(meta.getName())) {
-                if (!meta.isFilled()) {
-                    meta.addValue();
-                }
-                meta.getValues().get(0).setValue(filename);
-            }
-        }
         INodeType fileType = null;
         INodeType folderType = null;
 
@@ -327,6 +318,17 @@ public class KatzoomImportPlugin implements IImportPluginVersion3 {
                 folderType = nodeType;
             } else if ("file".equals(nodeType.getNodeName())) {
                 fileType = nodeType;
+            }
+        }
+
+        IEadEntry rootEntry = archivePlugin.getRootElement();
+        rootEntry.setNodeType(folderType);
+        for (IMetadataField meta : rootEntry.getIdentityStatementAreaList()) {
+            if ("unittitle".equals(meta.getName())) {
+                if (!meta.isFilled()) {
+                    meta.addValue();
+                }
+                meta.getValues().get(0).setValue(filename);
             }
         }
 
