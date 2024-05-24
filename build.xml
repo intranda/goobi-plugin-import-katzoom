@@ -6,7 +6,7 @@
 		<exec executable="mvn">
 			<arg value="package"/>
 		</exec>
-		<copy file="target/plugin_intranda_import_kick_start.jar" todir="/opt/digiverso/goobi/plugins/import/" overwrite="true"/>
+		<copy file="target/plugin_intranda_import_katzoom.jar" todir="/opt/digiverso/goobi/plugins/import/" overwrite="true"/>
 	</target>
 
 </project>

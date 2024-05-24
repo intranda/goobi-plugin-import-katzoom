@@ -1,0 +1,37 @@
+<config_plugin>
+    <config>
+
+        <!-- which workflow template shall be used -->
+        <template>*</template>
+        <!-- define if import shall use GoobiScript to run in the background -->
+        <runAsGoobiScript>false</runAsGoobiScript>
+        
+        <eadDatabaseName>basexdb</eadDatabaseName>
+        <generateEadFile>false</generateEadFile>
+        
+        <!-- root folder, contains all index folder -->
+        <importRootFolder>src/test/resources/data/</importRootFolder>
+
+        <!-- list all indexes where backside was scanned -->
+        <backsideScan>ank bis 45 Nominal</backsideScan>
+        <backsideScan>nka BKA Nominal</backsideScan>
+        <!-- collection name -->
+        <collection>Zettelkatalog</collection>
+        <!-- docstruct type -->
+        <doctype>Note</doctype>
+
+        <!-- metadata -->
+        <!-- contains the folder structure -->
+        <folderStructure>FolderStructure</folderStructure>
+        <!-- contains the total position -->
+        <position>TotalPosition</position>
+        <!-- assigned letter -->
+        <letter>Letter</letter>
+        <!-- position within the letter -->
+        <letterPosition>LetterPosition</letterPosition>
+        <!-- assigned tray -->
+        <tray>Tray</tray>
+        <!-- position within tray -->
+        <trayPosition>TrayPosition</trayPosition>
+    </config>
+</config_plugin>

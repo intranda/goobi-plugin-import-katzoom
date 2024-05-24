@@ -3,11 +3,11 @@
   <parent>
     <groupId>io.goobi.workflow</groupId>
     <artifactId>workflow-base</artifactId>
-    <version>24.03-SNAPSHOT</version>
+    <version>24.04.30</version>
     <relativePath />
   </parent>
   <groupId>io.goobi.workflow.plugin</groupId>
-  <artifactId>plugin-import-kick-start</artifactId>
+  <artifactId>plugin-import-katzoom</artifactId>
   <packaging>pom</packaging>
   <modules>
     <module>module-base</module>
@@ -25,5 +25,12 @@
       <version>${project.version}</version>
       <classifier>classes</classifier>
     </dependency>
+    <dependency>
+      <groupId>io.goobi.workflow.plugin</groupId>
+      <artifactId>plugin-administration-archive-management-lib</artifactId>
+      <version>24.04.2</version>
+      <scope>provided</scope>
+    </dependency>
+
   </dependencies>
 </project>
