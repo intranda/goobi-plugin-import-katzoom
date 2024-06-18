@@ -1,5 +1,5 @@
 ---
-title: Datenimport für Katzoom
+title: Import von Zettelkatalogen aus Katzoom
 identifier: intranda_import_katzoom
 github: https://github.com/intranda/plugin-import-katzoom
 description: Import-Plugin von Zettelkatalogen aus von Ordnerstrukturen des Systems Katzoom
@@ -23,6 +23,8 @@ Daneben muss das Plugin für das Archivmanagement installiert und konfiguriert s
 
 ## Überblick und Funktionsweise
 Bei diesem Plugin handelt es sich um ein sogenanntes `Import-Plugin`. Öffnet man den Bereich für den Massenimport, kann anschließend das Plugin im Reiter `Import aus Verzeichnis` ausgewählt werden.
+
+![Ausgewähltes Plugin im Bereich Ìmport aus Verzeichnis`](screen_de.png)
 
 Das Plugin erwarten für dessen Ausführung innerhalb des konfigurierten Import-Ordners die folgende Struktur:
 
