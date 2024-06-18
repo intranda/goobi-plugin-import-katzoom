@@ -1,13 +1,13 @@
 ---
-title: Import of card catalogues from Katzoom
+title: Import of card catalogues from KatZoom
 identifier: intranda_import_katzoom
 github: https://github.com/intranda/plugin-import-katzoom
-description: Import plugin for card catalogues from folder structures of the Katzoom system
+description: Import plugin for card catalogues from folder structures of the KatZoom system
 published: true
 ---
 
 ## Introduction
-This documentation describes the installation, configuration and use of the plugin for transferring card catalogues from the Katzoom system to Goobi workflow.
+This documentation describes the installation, configuration and use of the plugin for transferring card catalogues from the KatZoom system to Goobi workflow.
 
 
 ## Installation
