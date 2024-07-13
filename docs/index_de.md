@@ -1,7 +1,6 @@
 ---
 title: Import von Zettelkatalogen aus KatZoom
 identifier: intranda_import_katzoom
-github: https://github.com/intranda/plugin-import-katzoom
 description: Import-Plugin von Zettelkatalogen aus von Ordnerstrukturen des Systems KatZoom
 published: true
 ---
@@ -74,45 +73,7 @@ Die Bestände sind nach den einzelnen Katalogen benannt.
 ### Konfiguration
 Die Konfiguration des Plugins erfolgt in der Datei `plugin_intranda_import_katzoom.xml` wie hier aufgezeigt:
 
-```xml
-    <config>
-        <!-- which workflow template shall be used -->
-        <template>*</template>
-        <!-- define if import shall use GoobiScript to run in the background -->
-        <runAsGoobiScript>false</runAsGoobiScript>
-        
-        <eadDatabaseName>eadStore</eadDatabaseName>
-        <generateEadFile>true</generateEadFile>
-        
-        <!-- root folder, contains all index folder -->
-        <importRootFolder>/opt/digiverso/import/</importRootFolder>
-
-        <!-- list all indexes where backside was scanned -->
-        <backsideScan>ask bis 45 Schlagwort</backsideScan>
-        <backsideScan>ssk ÖSTA Schlagwort</backsideScan>
-        <backsideScan>swk BKA Schlagwort</backsideScan>
-        <backsideScan>ank bis 45 Nominal</backsideScan>
-        <backsideScan>nka BKA Nominal</backsideScan>
-        <!-- collection name -->
-        <collection>Zettelkatalog</collection>
-        <!-- docstruct type -->
-        <doctype>Note</doctype>
-
-        <!-- metadata -->
-        <!-- contains the folder structure -->
-        <folderStructure>FolderStructure</folderStructure>
-        <!-- contains the total position -->
-        <position>TotalPosition</position>
-        <!-- assigned letter -->
-        <letter>Letter</letter>
-        <!-- position within the letter -->
-        <letterPosition>LetterPosition</letterPosition>
-        <!-- assigned tray -->
-        <tray>Tray</tray>
-        <!-- position within tray -->
-        <trayPosition>TrayPosition</trayPosition>
-    </config>
-```
+{{CONFIG_CONTENT}}
 
 Zuerst wird innhalb von `<template>` definiert, für welche Produktionsvorlagen der Import gelten soll. 
 

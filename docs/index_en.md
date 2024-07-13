@@ -1,7 +1,6 @@
 ---
 title: Import of card catalogues from KatZoom
 identifier: intranda_import_katzoom
-github: https://github.com/intranda/plugin-import-katzoom
 description: Import plugin for card catalogues from folder structures of the KatZoom system
 published: true
 ---
@@ -74,45 +73,7 @@ The fonds are named after the individual catalogues.
 ### Configuration
 The plugin is configured in the file `plugin_intranda_import_katzoom.xml` as shown here:
 
-```xml
-    <config>
-        <!-- which workflow template shall be used -->
-        <template>*</template>
-        <!-- define if import shall use GoobiScript to run in the background -->
-        <runAsGoobiScript>false</runAsGoobiScript>
-        
-        <eadDatabaseName>eadStore</eadDatabaseName>
-        <generateEadFile>true</generateEadFile>
-        
-        <!-- root folder, contains all index folder -->
-        <importRootFolder>/opt/digiverso/import/</importRootFolder>
-
-        <!-- list all indexes where backside was scanned -->
-        <backsideScan>ask bis 45 Schlagwort</backsideScan>
-        <backsideScan>ssk ÖSTA Schlagwort</backsideScan>
-        <backsideScan>swk BKA Schlagwort</backsideScan>
-        <backsideScan>ank bis 45 Nominal</backsideScan>
-        <backsideScan>nka BKA Nominal</backsideScan>
-        <!-- collection name -->
-        <collection>Zettelkatalog</collection>
-        <!-- docstruct type -->
-        <doctype>Note</doctype>
-
-        <!-- metadata -->
-        <!-- contains the folder structure -->
-        <folderStructure>FolderStructure</folderStructure>
-        <!-- contains the total position -->
-        <position>TotalPosition</position>
-        <!-- assigned letter -->
-        <letter>Letter</letter>
-        <!-- position within the letter -->
-        <letterPosition>LetterPosition</letterPosition>
-        <!-- assigned tray -->
-        <tray>Tray</tray>
-        <!-- position within tray -->
-        <trayPosition>TrayPosition</trayPosition>
-    </config>
-```
+{{CONFIG_CONTENT}}
 
 Firstly, the production templates for which the import is to apply are defined within `<template>`. 
 
