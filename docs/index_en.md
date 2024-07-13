@@ -70,7 +70,7 @@ In addition, a stock is created in archive management for each card catalogue. T
 
 The fonds are named after the individual catalogues.
 
-### Configuration
+## Configuration
 The plugin is configured in the file `plugin_intranda_import_katzoom.xml` as shown here:
 
 {{CONFIG_CONTENT}}

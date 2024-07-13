@@ -70,7 +70,7 @@ Außerdem wird für jeden Zettelkatalog ein Bestand im Archivmanagement erzeugt.
 
 Die Bestände sind nach den einzelnen Katalogen benannt.
 
-### Konfiguration
+## Konfiguration
 Die Konfiguration des Plugins erfolgt in der Datei `plugin_intranda_import_katzoom.xml` wie hier aufgezeigt:
 
 {{CONFIG_CONTENT}}
