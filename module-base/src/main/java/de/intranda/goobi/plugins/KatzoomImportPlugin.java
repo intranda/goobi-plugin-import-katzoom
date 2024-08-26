@@ -101,7 +101,6 @@ public class KatzoomImportPlugin implements IImportPluginVersion3 {
 
     private String importRootFolder;
     // remove this after plugin changes from basex to database store
-    private String eadDatabaseName;
     private boolean generateEadFile;
     private List<String> backsideScans;
 
@@ -137,7 +136,6 @@ public class KatzoomImportPlugin implements IImportPluginVersion3 {
         if (myconfig != null) {
             importRootFolder = myconfig.getString("/importRootFolder", "");
 
-            eadDatabaseName = myconfig.getString("/eadDatabaseName", "eadStore");
             generateEadFile = myconfig.getBoolean("/generateEadFile", true);
 
             collection = myconfig.getString("/collection", "");
@@ -307,8 +305,7 @@ public class KatzoomImportPlugin implements IImportPluginVersion3 {
         IPlugin ia = PluginLoader.getPluginByTitle(PluginType.Administration, "intranda_administration_archive_management");
         archivePlugin = (IArchiveManagementAdministrationPlugin) ia;
 
-        archivePlugin.setDatabaseName(eadDatabaseName);
-        archivePlugin.setFileName(filename);
+        archivePlugin.setDatabaseName(filename);
         archivePlugin.createNewDatabase();
         INodeType fileType = null;
         INodeType folderType = null;
@@ -411,8 +408,7 @@ public class KatzoomImportPlugin implements IImportPluginVersion3 {
                 }
             }
         }
-        // save ead file
-        archivePlugin.createEadDocument();
+        archivePlugin.setSelectedEntry(rootEntry);
     }
 
     private Path copyFiles(List<String> files, String processName) throws IOException {
