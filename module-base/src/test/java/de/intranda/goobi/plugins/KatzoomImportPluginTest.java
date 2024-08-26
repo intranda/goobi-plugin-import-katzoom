@@ -265,7 +265,6 @@ public class KatzoomImportPluginTest {
                 .andReturn(plugin)
                 .anyTimes();
         plugin.setDatabaseName(EasyMock.anyString());
-        plugin.setFileName(EasyMock.anyString());
         plugin.createNewDatabase();
         EasyMock.expect(plugin.getRootElement()).andReturn(rootElement).anyTimes();
 
@@ -298,8 +297,6 @@ public class KatzoomImportPluginTest {
         List<INodeType> lst = new ArrayList<>();
         lst.add(t1);
         lst.add(t2);
-
-        plugin.createEadDocument();
 
         EasyMock.expect(plugin.getConfiguredNodes()).andReturn(lst).anyTimes();
         EasyMock.expect(t1.getNodeName()).andReturn("folder").anyTimes();
