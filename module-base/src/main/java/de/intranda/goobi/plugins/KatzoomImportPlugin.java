@@ -413,9 +413,10 @@ public class KatzoomImportPlugin implements IImportPluginVersion3 {
 
     private Path copyFiles(List<String> files, String processName) throws IOException {
         // create folder structure
+
         Path processFolder = Paths.get(importFolder, processName);
         Path mediaFolder = Paths.get(processFolder.toString(), "images", processName + "_media");
-        Path masterFolder = Paths.get(processFolder.toString(), "images", "master_" + processName + "_media");
+        Path masterFolder = Paths.get(processFolder.toString(), "images", processName + "_master");
 
         Path textFolder = Paths.get(processFolder.toString(), "ocr", processName + "txt");
         Path pdfFolder = Paths.get(processFolder.toString(), "ocr", processName + "_pdf");
