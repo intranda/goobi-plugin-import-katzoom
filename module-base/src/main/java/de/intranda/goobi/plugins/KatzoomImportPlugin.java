@@ -593,6 +593,9 @@ public class KatzoomImportPlugin implements IImportPluginVersion3 {
     }
 
     private TrayIndex findTrayIndexForPosition(int position, List<TrayIndex> trayIndex) {
+        if (trayIndex.isEmpty()) {
+            return null;
+        }
         TrayIndex current = null;
         if (position == 1) {
             current = trayIndex.get(0);
