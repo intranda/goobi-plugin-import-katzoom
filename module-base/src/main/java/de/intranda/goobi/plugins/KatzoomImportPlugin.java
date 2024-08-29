@@ -420,10 +420,10 @@ public class KatzoomImportPlugin implements IImportPluginVersion3 {
 
         Path textFolder = Paths.get(processFolder.toString(), "ocr", processName + "txt");
         Path pdfFolder = Paths.get(processFolder.toString(), "ocr", processName + "_pdf");
-        Files.createDirectories(mediaFolder);
-        Files.createDirectories(masterFolder);
-        Files.createDirectories(textFolder);
-        Files.createDirectories(pdfFolder);
+        StorageProvider.getInstance().createDirectories(mediaFolder);
+        StorageProvider.getInstance().createDirectories(masterFolder);
+        StorageProvider.getInstance().createDirectories(textFolder);
+        StorageProvider.getInstance().createDirectories(pdfFolder);
 
         for (String fileToImport : files) {
             Path fileToCopy = Paths.get(fileToImport);
