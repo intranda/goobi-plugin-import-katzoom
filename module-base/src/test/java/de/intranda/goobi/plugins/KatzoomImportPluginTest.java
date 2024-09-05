@@ -167,7 +167,7 @@ public class KatzoomImportPluginTest {
         assertTrue(io.getMetsFilename().endsWith("b0000001.xml"));
 
         // check if files where copied
-        Path masterFolder = Paths.get(io.getMetsFilename().replace(".xml", "/images/master_b0000001_media"));
+        Path masterFolder = Paths.get(io.getMetsFilename().replace(".xml", "/images/b0000001_master"));
         assertTrue(Files.exists(masterFolder));
         assertTrue(Files.exists(Paths.get(masterFolder.toString(), "b0000001.tif")));
 
@@ -265,7 +265,6 @@ public class KatzoomImportPluginTest {
                 .andReturn(plugin)
                 .anyTimes();
         plugin.setDatabaseName(EasyMock.anyString());
-        plugin.setFileName(EasyMock.anyString());
         plugin.createNewDatabase();
         EasyMock.expect(plugin.getRootElement()).andReturn(rootElement).anyTimes();
 
@@ -298,8 +297,6 @@ public class KatzoomImportPluginTest {
         List<INodeType> lst = new ArrayList<>();
         lst.add(t1);
         lst.add(t2);
-
-        plugin.createEadDocument();
 
         EasyMock.expect(plugin.getConfiguredNodes()).andReturn(lst).anyTimes();
         EasyMock.expect(t1.getNodeName()).andReturn("folder").anyTimes();

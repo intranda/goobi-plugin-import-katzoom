@@ -101,7 +101,6 @@ public class KatzoomImportPlugin implements IImportPluginVersion3 {
 
     private String importRootFolder;
     // remove this after plugin changes from basex to database store
-    private String eadDatabaseName;
     private boolean generateEadFile;
     private List<String> backsideScans;
 
@@ -137,7 +136,6 @@ public class KatzoomImportPlugin implements IImportPluginVersion3 {
         if (myconfig != null) {
             importRootFolder = myconfig.getString("/importRootFolder", "");
 
-            eadDatabaseName = myconfig.getString("/eadDatabaseName", "eadStore");
             generateEadFile = myconfig.getBoolean("/generateEadFile", true);
 
             collection = myconfig.getString("/collection", "");
@@ -307,8 +305,7 @@ public class KatzoomImportPlugin implements IImportPluginVersion3 {
         IPlugin ia = PluginLoader.getPluginByTitle(PluginType.Administration, "intranda_administration_archive_management");
         archivePlugin = (IArchiveManagementAdministrationPlugin) ia;
 
-        archivePlugin.setDatabaseName(eadDatabaseName);
-        archivePlugin.setFileName(filename);
+        archivePlugin.setDatabaseName(filename);
         archivePlugin.createNewDatabase();
         INodeType fileType = null;
         INodeType folderType = null;
@@ -411,22 +408,22 @@ public class KatzoomImportPlugin implements IImportPluginVersion3 {
                 }
             }
         }
-        // save ead file
-        archivePlugin.createEadDocument();
+        archivePlugin.setSelectedEntry(rootEntry);
     }
 
     private Path copyFiles(List<String> files, String processName) throws IOException {
         // create folder structure
+
         Path processFolder = Paths.get(importFolder, processName);
         Path mediaFolder = Paths.get(processFolder.toString(), "images", processName + "_media");
-        Path masterFolder = Paths.get(processFolder.toString(), "images", "master_" + processName + "_media");
+        Path masterFolder = Paths.get(processFolder.toString(), "images", processName + "_master");
 
         Path textFolder = Paths.get(processFolder.toString(), "ocr", processName + "txt");
         Path pdfFolder = Paths.get(processFolder.toString(), "ocr", processName + "_pdf");
-        Files.createDirectories(mediaFolder);
-        Files.createDirectories(masterFolder);
-        Files.createDirectories(textFolder);
-        Files.createDirectories(pdfFolder);
+        StorageProvider.getInstance().createDirectories(mediaFolder);
+        StorageProvider.getInstance().createDirectories(masterFolder);
+        StorageProvider.getInstance().createDirectories(textFolder);
+        StorageProvider.getInstance().createDirectories(pdfFolder);
 
         for (String fileToImport : files) {
             Path fileToCopy = Paths.get(fileToImport);
@@ -596,6 +593,9 @@ public class KatzoomImportPlugin implements IImportPluginVersion3 {
     }
 
     private TrayIndex findTrayIndexForPosition(int position, List<TrayIndex> trayIndex) {
+        if (trayIndex.isEmpty()) {
+            return null;
+        }
         TrayIndex current = null;
         if (position == 1) {
             current = trayIndex.get(0);
