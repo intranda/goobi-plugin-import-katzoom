@@ -23,7 +23,7 @@ The archive management plugin must also be installed and configured. Instruction
 ## Overview and functionality
 This plugin is a so-called `Import plugin`. If you open the mass import area, you can then select the plugin in the `Import from folder` tab.
 
-![Selected plugin in the `Import from folder` area](screen_en.png)
+![Selected plugin in the 'Import from folder' area](screen_en.png)
 
 The plugin expects the following structure for its execution within the configured import folder:
 
