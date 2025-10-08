@@ -34,6 +34,7 @@ import org.powermock.core.classloader.annotations.PowerMockIgnore;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 
+import de.intranda.goobi.plugins.model.ArchiveManagementConfiguration;
 import de.sub.goobi.config.ConfigurationHelper;
 import ugh.dl.DocStruct;
 import ugh.dl.Metadata;
@@ -298,11 +299,14 @@ public class KatzoomImportPluginTest {
         lst.add(t1);
         lst.add(t2);
 
-        EasyMock.expect(plugin.getConfiguredNodes()).andReturn(lst).anyTimes();
+        ArchiveManagementConfiguration conf = EasyMock.createMock(ArchiveManagementConfiguration.class);
+
+        EasyMock.expect(plugin.getConfig()).andReturn(conf).anyTimes();
+        EasyMock.expect(conf.getConfiguredNodes()).andReturn(lst).anyTimes();
         EasyMock.expect(t1.getNodeName()).andReturn("folder").anyTimes();
         EasyMock.expect(t2.getNodeName()).andReturn("file").anyTimes();
 
-        EasyMock.replay(t1, t2, rootElement, plugin, field, val, letterElement, trayElement);
+        EasyMock.replay(t1, t2, rootElement, plugin, field, val, letterElement, trayElement, conf);
         PowerMock.replay(PluginLoader.class);
     }
 

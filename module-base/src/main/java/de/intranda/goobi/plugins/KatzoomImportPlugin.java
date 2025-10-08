@@ -310,7 +310,7 @@ public class KatzoomImportPlugin implements IImportPluginVersion3 {
         INodeType fileType = null;
         INodeType folderType = null;
 
-        for (INodeType nodeType : archivePlugin.getConfiguredNodes()) {
+        for (INodeType nodeType : archivePlugin.getConfig().getConfiguredNodes()) {
             if ("folder".equals(nodeType.getNodeName())) {
                 folderType = nodeType;
             } else if ("file".equals(nodeType.getNodeName())) {
