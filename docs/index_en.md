@@ -3,6 +3,10 @@ title: Import of card catalogues from KatZoom
 identifier: intranda_import_katzoom
 description: Import plugin for card catalogues from folder structures of the KatZoom system
 published: true
+keywords:
+    - Goobi workflow
+    - Plugin
+    - Import Plugin
 ---
 
 ## Introduction
