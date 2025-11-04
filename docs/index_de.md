@@ -3,6 +3,10 @@ title: Import von Zettelkatalogen aus KatZoom
 identifier: intranda_import_katzoom
 description: Import-Plugin von Zettelkatalogen aus von Ordnerstrukturen des Systems KatZoom
 published: true
+keywords:
+    - Goobi workflow
+    - Plugin
+    - Import Plugin
 ---
 
 ## Einführung
