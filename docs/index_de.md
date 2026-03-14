@@ -29,7 +29,7 @@ Bei diesem Plugin handelt es sich um ein sogenanntes `Import-Plugin`. Öffnet ma
 
 ![Ausgewähltes Plugin im Bereich 'Import aus Verzeichnis'](screen_de.png)
 
-Das Plugin erwarten für dessen Ausführung innerhalb des konfigurierten Import-Ordners die folgende Struktur:
+Das Plugin erwartet für dessen Ausführung innerhalb des konfigurierten Import-Ordners die folgende Struktur:
 
 ```bash
 ank bis 45 Nominal/
@@ -79,7 +79,7 @@ Die Konfiguration des Plugins erfolgt in der Datei `plugin_intranda_import_katzo
 
 {{CONFIG_CONTENT}}
 
-Zuerst wird innhalb von `<template>` definiert, für welche Produktionsvorlagen der Import gelten soll. 
+Zuerst wird innerhalb von `<template>` definiert, für welche Produktionsvorlagen der Import gelten soll. 
 
 Anschließend erfolgt die Konfiguration des Archivbestandes innerhalb des Archivmanagement-Plugins sowie die Angabe des Import-Ordners, in dem die Ordner für die einzelnen Zettelkataloge erwartet werden. Das Element `<backsideScan>` enthält die Namen der Zettelkataloge, zu denen auch die Rückseite digitalisiert wurde. Fehlt ein Katalog in dieser Liste, geht der Import davon aus, dass nur die Vorderseite existiert.
 
