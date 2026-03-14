@@ -21,7 +21,7 @@ The following files must be installed in order to use the plugin:
 /opt/digiverso/goobi/config/plugin_intranda_import_katzoom.xml
 ```
 
-The archive management plugin must also be installed and configured. Instructions for this can be found at the following address: https://docs.goobi.io/goobi-workflow-plugins-en/administration/intranda_administration_archive_management
+The archive management plugin must also be installed and configured. Instructions for this can be found at the following address: https://docs.goobi.io/en/workflow/plugins/administration/goobi-plugin-administration-archive-management/usage
 
 
 ## Overview and functionality
