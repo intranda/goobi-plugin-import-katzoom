@@ -66,6 +66,8 @@ Innerhalb des ausgewählten Ordners wird eine `*.ind` Datei und optional eine `*
 Des weiteren wird eine Ordnerstruktur mit bis zu 3 Unterordnern erwartet, in denen die einzelnen Dateien liegen. Die Dateien beginnen immer mit einem Buchstaben gefolgt von einer fortlaufenden Nummer und der Dateiendung.
 Pro Objekt können verschiedenen Derivate existieren, die dann bis auf die Dateiendung gleich heißen. Eine Ausnahme ist ein heruntergerechnetes Vorschaubild, das mit einem anderen Buchstaben startet.
 
+Die Derivate werden innerhalb des erzeugten Vorgangs anhand ihrer Dateiendung verteilt: `tif`-Dateien werden im Master-Ordner abgelegt, `png`-Dateien im Media-Ordner, `txt`- und `pdf`-Dateien in den entsprechenden Ordnern innerhalb von `ocr`. Die Namen dieser vier Ordner sind nicht fest vorgegeben, sondern werden aus den in der `goobi_config.properties` konfigurierten Ordnerregeln übernommen (`process.folder.images.master`, `process.folder.images.main`, `process.folder.ocr.txt` und `process.folder.ocr.pdf`), damit die importierten Daten genau dort landen, wo Goobi sie erwartet.
+
 Alle Dateinamen werden gesammelt und anhand der Nummer aufsteigend sortiert. Es kann pro Zettelkatalog festgelegt werden, ob nur die Vorderseite (z.B. `hhn HHStA Nominal`) oder Vorder- und Rückseite gescannt wurden (z.B. `ank bis 45 Nominal`). Im ersten Fall wird aus jeder Nummer ein Datensatz erzeugt, im zweiten Fall aus jeder ungeraden Nummer. Die folgende, gerade Zahl ist dann die Rückseite des Datensatzes.
 
 Für jeden Datensatz wird der dazugehörige Buchstabe, sofern vorhanden die Lade sowie die Positionen innerhalb des Katalogs, des Buchstaben und der Lade ermittelt. Diese Informationen werden mit der originalen Ordnerstruktur als Metadaten gespeichert.

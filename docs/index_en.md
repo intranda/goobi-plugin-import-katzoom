@@ -66,6 +66,8 @@ A `*.ind` file and optionally a `*.lli` file are expected within the selected fo
 Furthermore, a folder structure with up to 3 subfolders is expected, in which the individual files are located. The files always begin with a letter followed by a consecutive number and the file extension.
 Different derivatives can exist for each object, which then have the same name apart from the file extension. An exception is a downsampled preview image, which starts with a different letter.
 
+The derivatives are distributed within the generated process according to their file extension: `tif` files are placed in the master folder, `png` files in the media folder, and `txt` and `pdf` files in the corresponding folders inside `ocr`. The names of these four folders are not fixed; they are taken from the folder rules configured in `goobi_config.properties` (`process.folder.images.master`, `process.folder.images.main`, `process.folder.ocr.txt` and `process.folder.ocr.pdf`), so that the imported data ends up exactly where Goobi expects it.
+
 All file names are collected and sorted in ascending order by number. For each card catalogue, you can specify whether only the front (e.g. `hhn HHStA Nominal`) or the front and back were scanned (e.g. `ank to 45 Nominal`). In the first case, a data record is generated from each number, in the second case from each odd number. The following even number is then the reverse of the data record.
 
 For each data record, the corresponding letter, if available, the drawer and the positions within the catalogue, the letter and the drawer are determined. This information is saved with the original folder structure as metadata.
