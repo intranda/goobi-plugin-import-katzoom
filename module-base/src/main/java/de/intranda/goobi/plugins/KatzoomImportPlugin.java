@@ -37,6 +37,7 @@ import org.goobi.production.plugin.interfaces.IPlugin;
 import org.goobi.production.properties.ImportProperty;
 
 import de.sub.goobi.config.ConfigPlugins;
+import de.sub.goobi.config.ConfigurationHelper;
 import de.sub.goobi.forms.MassImportForm;
 import de.sub.goobi.helper.NIOFileUtils;
 import de.sub.goobi.helper.StorageProvider;
@@ -414,12 +415,15 @@ public class KatzoomImportPlugin implements IImportPluginVersion3 {
     private Path copyFiles(List<String> files, String processName) throws IOException {
         // create folder structure
 
-        Path processFolder = Paths.get(importFolder, processName);
-        Path mediaFolder = Paths.get(processFolder.toString(), "images", processName + "_media");
-        Path masterFolder = Paths.get(processFolder.toString(), "images", processName + "_master");
+        ConfigurationHelper config = ConfigurationHelper.getInstance();
 
-        Path textFolder = Paths.get(processFolder.toString(), "ocr", processName + "txt");
-        Path pdfFolder = Paths.get(processFolder.toString(), "ocr", processName + "_pdf");
+        Path processFolder = Paths.get(importFolder, processName);
+        Path mediaFolder = Paths.get(processFolder.toString(), "images", getFolderName(config.getProcessImagesMainDirectoryName(), processName));
+        Path masterFolder =
+                Paths.get(processFolder.toString(), "images", getFolderName(config.getProcessImagesMasterDirectoryName(), processName));
+
+        Path textFolder = Paths.get(processFolder.toString(), "ocr", getFolderName(config.getProcessOcrTxtDirectoryName(), processName));
+        Path pdfFolder = Paths.get(processFolder.toString(), "ocr", getFolderName(config.getProcessOcrPdfDirectoryName(), processName));
         StorageProvider.getInstance().createDirectories(mediaFolder);
         StorageProvider.getInstance().createDirectories(masterFolder);
         StorageProvider.getInstance().createDirectories(textFolder);
@@ -445,6 +449,13 @@ public class KatzoomImportPlugin implements IImportPluginVersion3 {
             }
         }
         return masterFolder;
+    }
+
+    /**
+     * resolve a configured folder name rule like '{processtitle}_txt' for the given process title
+     */
+    private String getFolderName(String folderNameRule, String processName) {
+        return folderNameRule.replace("{processtitle}", processName);
     }
 
     /**

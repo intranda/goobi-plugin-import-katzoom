@@ -1,6 +1,7 @@
 package de.intranda.goobi.plugins;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -51,6 +52,12 @@ public class KatzoomImportPluginTest {
     private File tempFolder;
     private static String resourcesFolder;
 
+    // folder name rules as returned by ConfigurationHelper; individual tests may override them
+    private String mediaFolderRule;
+    private String masterFolderRule;
+    private String txtFolderRule;
+    private String pdfFolderRule;
+
     @BeforeClass
     public static void setUpClass() throws Exception {
         resourcesFolder = "src/test/resources/"; // for junit tests in eclipse
@@ -74,12 +81,21 @@ public class KatzoomImportPluginTest {
             resourcesFolder = "target/test-classes/"; // to run mvn test from cli or in jenkins
         }
 
+        mediaFolderRule = "{processtitle}_media";
+        masterFolderRule = "{processtitle}_master";
+        txtFolderRule = "{processtitle}_txt";
+        pdfFolderRule = "{processtitle}_pdf";
+
         PowerMock.mockStatic(ConfigurationHelper.class);
 
         ConfigurationHelper configurationHelper = EasyMock.createMock(ConfigurationHelper.class);
         EasyMock.expect(ConfigurationHelper.getInstance()).andReturn(configurationHelper).anyTimes();
         EasyMock.expect(configurationHelper.getConfigurationFolder()).andReturn(resourcesFolder).anyTimes();
         EasyMock.expect(configurationHelper.useS3()).andReturn(false).anyTimes();
+        EasyMock.expect(configurationHelper.getProcessImagesMainDirectoryName()).andAnswer(() -> mediaFolderRule).anyTimes();
+        EasyMock.expect(configurationHelper.getProcessImagesMasterDirectoryName()).andAnswer(() -> masterFolderRule).anyTimes();
+        EasyMock.expect(configurationHelper.getProcessOcrTxtDirectoryName()).andAnswer(() -> txtFolderRule).anyTimes();
+        EasyMock.expect(configurationHelper.getProcessOcrPdfDirectoryName()).andAnswer(() -> pdfFolderRule).anyTimes();
         EasyMock.replay(configurationHelper);
         PowerMock.replay(ConfigurationHelper.class);
 
@@ -221,6 +237,68 @@ public class KatzoomImportPluginTest {
         md = logical.getAllMetadata().get(7);
         assertEquals("TrayPosition", md.getType().getName());
         assertEquals("1", md.getValue());
+    }
+
+    @Test
+    public void testCopyFilesCreatesFolderNamesFromConfiguredRules() throws Exception {
+        Path processFolder = importFirstRecord();
+
+        assertTrue("images/b0000001_media is missing", Files.exists(processFolder.resolve("images").resolve("b0000001_media")));
+        assertTrue("images/b0000001_master is missing", Files.exists(processFolder.resolve("images").resolve("b0000001_master")));
+        assertTrue("ocr/b0000001_txt is missing", Files.exists(processFolder.resolve("ocr").resolve("b0000001_txt")));
+        assertTrue("ocr/b0000001_pdf is missing", Files.exists(processFolder.resolve("ocr").resolve("b0000001_pdf")));
+    }
+
+    @Test
+    public void testCopyFilesCopiesFulltextIntoConfiguredFolder() throws Exception {
+        Path processFolder = importFirstRecord();
+
+        Path textFolder = processFolder.resolve("ocr").resolve("b0000001_txt");
+        assertTrue("b0000001.txt was not copied to ocr/b0000001_txt", Files.exists(textFolder.resolve("b0000001.txt")));
+    }
+
+    @Test
+    public void testCopyFilesHonoursCustomConfiguredFolderNames() throws Exception {
+        mediaFolderRule = "{processtitle}_bilder";
+        masterFolderRule = "master_{processtitle}";
+        txtFolderRule = "fulltext";
+        pdfFolderRule = "pdf_{processtitle}";
+
+        Path processFolder = importFirstRecord();
+
+        assertTrue("images/b0000001_bilder is missing", Files.exists(processFolder.resolve("images").resolve("b0000001_bilder")));
+        assertTrue("images/master_b0000001 is missing", Files.exists(processFolder.resolve("images").resolve("master_b0000001")));
+        assertTrue("ocr/fulltext is missing", Files.exists(processFolder.resolve("ocr").resolve("fulltext")));
+        assertTrue("ocr/pdf_b0000001 is missing", Files.exists(processFolder.resolve("ocr").resolve("pdf_b0000001")));
+
+        assertTrue("b0000001.txt was not copied to ocr/fulltext",
+                Files.exists(processFolder.resolve("ocr").resolve("fulltext").resolve("b0000001.txt")));
+
+        // the default names must not be used when the configuration says otherwise
+        assertFalse("images/b0000001_media must not be created", Files.exists(processFolder.resolve("images").resolve("b0000001_media")));
+        assertFalse("images/b0000001_master must not be created", Files.exists(processFolder.resolve("images").resolve("b0000001_master")));
+    }
+
+    /**
+     * imports the first record of the test index and returns the folder that was created for it
+     */
+    private Path importFirstRecord() throws Exception {
+        File importFolder = folder.newFolder();
+
+        KatzoomImportPlugin plugin = new KatzoomImportPlugin();
+        plugin.setImportFolder(importFolder.getAbsolutePath());
+        Prefs prefs = new Prefs();
+        prefs.loadPrefs(resourcesFolder + "ruleset.xml");
+        plugin.setPrefs(prefs);
+
+        List<String> folderList = plugin.getAllFilenames();
+        List<Record> recordList = plugin.generateRecordsFromFilenames(folderList);
+        List<ImportObject> imports = plugin.generateFiles(recordList.subList(0, 1));
+
+        assertEquals(1, imports.size());
+        ImportObject io = imports.get(0);
+        assertEquals("b0000001", io.getProcessTitle());
+        return Paths.get(io.getMetsFilename().replace(".xml", ""));
     }
 
     @Test
