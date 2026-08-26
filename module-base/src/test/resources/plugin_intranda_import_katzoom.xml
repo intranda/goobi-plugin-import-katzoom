@@ -34,4 +34,23 @@
         <!-- position within tray -->
         <trayPosition>TrayPosition</trayPosition>
     </config>
+    <!-- same as above, but with the ead generation enabled -->
+    <config>
+        <template>eadtest</template>
+        <runAsGoobiScript>false</runAsGoobiScript>
+        <eadDatabaseName>basexdb</eadDatabaseName>
+        <generateEadFile>true</generateEadFile>
+        <importRootFolder>src/test/resources/data/</importRootFolder>
+        <backsideScan>ank bis 45 Nominal</backsideScan>
+        <backsideScan>nka BKA Nominal</backsideScan>
+        <collection>Zettelkatalog</collection>
+        <doctype>Note</doctype>
+        <folderStructure>FolderStructure</folderStructure>
+        <position>TotalPosition</position>
+        <letter>Letter</letter>
+        <letterPosition>LetterPosition</letterPosition>
+        <tray>Tray</tray>
+        <trayPosition>TrayPosition</trayPosition>
+    </config>
 </config_plugin>
+

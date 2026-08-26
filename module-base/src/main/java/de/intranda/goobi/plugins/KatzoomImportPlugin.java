@@ -9,6 +9,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -16,6 +17,7 @@ import java.util.TreeMap;
 import java.util.regex.MatchResult;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 import org.apache.commons.configuration.SubnodeConfiguration;
 import org.apache.commons.configuration.XMLConfiguration;
@@ -105,6 +107,13 @@ public class KatzoomImportPlugin implements IImportPluginVersion3 {
     private boolean generateEadFile;
     private List<String> backsideScans;
 
+    // number of card nodes that are collected before they are written to the database
+    private static final int EAD_BATCH_SIZE = 500;
+
+    // caches the listing of the folder that is currently processed, see listFolder(String)
+    private String cachedFolder;
+    private List<String> cachedFolderContent;
+
     private static Pattern letterIndexFilePattern = Pattern.compile("([A-Z]\\/?J?)\\s+(\\d+)");
     private static Pattern trayIndexFilePattern = Pattern.compile("(\\d+)\\s(\\w+)\\s(\\d+)\\s(\\d+)");
 
@@ -192,8 +201,7 @@ public class KatzoomImportPlugin implements IImportPluginVersion3 {
 
             KatzoomImportObject kip = (KatzoomImportObject) rec.getObject();
 
-            List<String> files = kip.getFiles();
-            Collections.sort(files);
+            List<String> files = resolveFiles(kip);
             String filename = files.get(0);
             // get process title
             String processName = kip.getLabel();
@@ -321,95 +329,91 @@ public class KatzoomImportPlugin implements IImportPluginVersion3 {
 
         IEadEntry rootEntry = archivePlugin.getRootElement();
         rootEntry.setNodeType(folderType);
-        for (IMetadataField meta : rootEntry.getIdentityStatementAreaList()) {
-            if ("unittitle".equals(meta.getName())) {
-                if (!meta.isFilled()) {
-                    meta.addValue();
-                }
-                meta.getValues().get(0).setValue(filename);
-            }
-        }
+        setFields(rootEntry, filename, "unittitle");
+        // createNewDatabase() stored the root before its title was known
+        archivePlugin.saveNodes(Collections.singletonList(rootEntry));
+
+        // remember the letter and tray nodes by their name. Looking them up in the sub entry list would not work, because the card nodes are
+        // detached from the tree as soon as they are stored.
+        Map<String, IEadEntry> folderNodes = new HashMap<>();
+        // number of cards that were already added below a letter or tray node
+        Map<String, Integer> cardsPerFolderNode = new HashMap<>();
+
+        // the card nodes are collected and written in batches, one statement per node would mean one database round trip per card
+        List<IEadEntry> unsavedNodes = new ArrayList<>();
 
         for (Record rec : records) {
             KatzoomImportObject kip = (KatzoomImportObject) rec.getObject();
-            // find subnode in root for current letter
-            IEadEntry letterNode = null;
-            IEadEntry trayNode = null;
-            for (IEadEntry e : rootEntry.getSubEntryList()) {
-                if (e.getLabel().equals(kip.getLetterName())) {
-                    letterNode = e;
-                    break;
-                }
-            }
-            // if subnode does not exist, create it
+            // find or create the subnode of the root for the current letter
+            IEadEntry letterNode = folderNodes.get(kip.getLetterName());
             if (letterNode == null) {
-                // select root entry
-                archivePlugin.setSelectedEntry(rootEntry);
-                // create new node
-                archivePlugin.addNode();
-                letterNode = archivePlugin.getSelectedEntry();
-                letterNode.setNodeType(folderType);
-
-                for (IMetadataField meta : letterNode.getIdentityStatementAreaList()) {
-                    if ("unittitle".equals(meta.getName())) {
-                        if (!meta.isFilled()) {
-                            meta.addValue();
-                        }
-                        meta.getValues().get(0).setValue(kip.getLetterName());
-                    }
-                }
-
+                letterNode = addFolderNode(rootEntry, folderType, kip.getLetterName());
+                folderNodes.put(kip.getLetterName(), letterNode);
             }
-            // if current data uses trays
+
+            // if current data uses trays, find or create the tray below the letter
+            IEadEntry parentNode = letterNode;
+            String parentName = kip.getLetterName();
             if (StringUtils.isNotBlank(kip.getTrayName())) {
-                // find tray node in letter sub nodes
-                for (IEadEntry e : letterNode.getSubEntryList()) {
-                    if (e.getLabel().equals(kip.getTrayName())) {
-                        trayNode = e;
-                        break;
-                    }
-                }
-                // if subnode does not exist, create it
+                parentName = kip.getLetterName() + "/" + kip.getTrayName();
+                IEadEntry trayNode = folderNodes.get(parentName);
                 if (trayNode == null) {
-                    // select root entry
-                    archivePlugin.setSelectedEntry(letterNode);
-                    // create new node
-                    archivePlugin.addNode();
-                    trayNode = archivePlugin.getSelectedEntry();
-                    trayNode.setNodeType(folderType);
-
-                    for (IMetadataField meta : trayNode.getIdentityStatementAreaList()) {
-                        if ("unittitle".equals(meta.getName())) {
-                            if (!meta.isFilled()) {
-                                meta.addValue();
-                            }
-                            meta.getValues().get(0).setValue(kip.getTrayName());
-                        }
-                    }
+                    trayNode = addFolderNode(letterNode, folderType, kip.getTrayName());
+                    folderNodes.put(parentName, trayNode);
                 }
+                parentNode = trayNode;
             }
-            // create new node within subnode
 
-            if (trayNode != null) {
-                archivePlugin.setSelectedEntry(trayNode);
-            } else {
-                archivePlugin.setSelectedEntry(letterNode);
-            }
-            archivePlugin.addNode();
-            IEadEntry node = archivePlugin.getSelectedEntry();
+            // create the node of the card within the letter or tray
+            IEadEntry node = archivePlugin.addNodeWithoutSaving(parentNode);
             node.setNodeType(fileType);
             node.setGoobiProcessTitle(kip.getLabel());
+            setFields(node, kip.getLabel(), "unittitle", "unitid");
 
-            for (IMetadataField meta : node.getIdentityStatementAreaList()) {
-                if ("unittitle".equals(meta.getName()) || "unitid".equals(meta.getName())) {
-                    if (!meta.isFilled()) {
-                        meta.addValue();
-                    }
-                    meta.getValues().get(0).setValue(kip.getLabel());
-                }
+            // the order can not be derived from the number of children, the card nodes do not stay in the tree
+            node.setOrderNumber(cardsPerFolderNode.merge(parentName, 1, Integer::sum) - 1);
+
+            // a card index can hold several hundred thousand cards, their nodes must not pile up in the tree
+            parentNode.removeSubEntry(node);
+            unsavedNodes.add(node);
+            if (unsavedNodes.size() >= EAD_BATCH_SIZE) {
+                archivePlugin.saveNodes(unsavedNodes);
+                unsavedNodes.clear();
             }
         }
+        if (!unsavedNodes.isEmpty()) {
+            archivePlugin.saveNodes(unsavedNodes);
+            unsavedNodes.clear();
+        }
+
         archivePlugin.setSelectedEntry(rootEntry);
+    }
+
+    /**
+     * create a new folder node with the given title below the parent node. Letters and trays are stored right away, because the nodes of their cards
+     * reference them as parent.
+     */
+    private IEadEntry addFolderNode(IEadEntry parentNode, INodeType folderType, String title) {
+        IEadEntry node = archivePlugin.addNodeWithoutSaving(parentNode);
+        node.setNodeType(folderType);
+        setFields(node, title, "unittitle");
+        archivePlugin.saveNodes(Collections.singletonList(node));
+        return node;
+    }
+
+    /**
+     * write the given value into the named metadata fields of a node
+     */
+    private void setFields(IEadEntry node, String value, String... fieldNames) {
+        List<String> names = Arrays.asList(fieldNames);
+        for (IMetadataField meta : node.getIdentityStatementAreaList()) {
+            if (names.contains(meta.getName())) {
+                if (!meta.isFilled()) {
+                    meta.addValue();
+                }
+                meta.getValues().get(0).setValue(value);
+            }
+        }
     }
 
     private Path copyFiles(List<String> files, String processName) throws IOException {
@@ -502,6 +506,7 @@ public class KatzoomImportPlugin implements IImportPluginVersion3 {
         List<Record> records = new ArrayList<>();
         // run through each selected index
         for (String index : indexes) {
+            log.debug("Read index  {}", index);
             boolean backsideScanned = backsideScans.contains(index);
             Path folder = Paths.get(importRootFolder, index);
             // load *.ind file to check letter index (format it: new line after each number)
@@ -516,40 +521,28 @@ public class KatzoomImportPlugin implements IImportPluginVersion3 {
                 }
             }
             List<LetterIndex> letterIndex = readLetterIndexFile(folder, letterIndexFile);
+            log.debug("letter size: {}", letterIndex.size());
             List<TrayIndex> trayIndex = readTrayIndexFile(folder, trayIndexFile);
+            log.debug("tray size: {}", trayIndex.size());
 
-            // get the actual content from all sub folders
-            List<Path> allFiles = new ArrayList<>();
+            // scan all sub folders and remember for each card in which folder its files are located. The file names themselves are not kept, they
+            // are resolved from the folder listing when they are needed. Files always follow the pattern letter - number - .extension.
+            Map<Integer, String> contentMap = new TreeMap<>(); // TreeMap to sort entries by key
+            Map<Integer, List<String>> spreadCards = new HashMap<>();
+            Map<String, String> knownFolders = new HashMap<>(); // makes sure that every folder name exists only once in memory
 
-            try {
-                Files.find(folder, 5,
-                        (p, found) -> found.isRegularFile())
-                        .forEach(allFiles::add);
+            try (Stream<Path> foundFiles = Files.find(folder, 5, (p, found) -> found.isRegularFile())) {
+                foundFiles.forEach(p -> collectCardFolder(p, backsideScanned, contentMap, spreadCards, knownFolders));
             } catch (IOException e) {
                 log.error(e);
             }
 
-            Map<Integer, List<String>> contentMap = new TreeMap<>(); // TreeMap to sort entries by key
-            // files always follow the pattern letter - number - .extension
+            log.debug("Number of folders: {}", knownFolders.size());
 
-            for (Path p : allFiles) {
-                String filename = p.getFileName().toString();
-                if (filename.matches("\\w\\d+\\.\\w+")) {
-                    Integer id = Integer.parseInt(filename.substring(1, filename.indexOf(".")));
-
-                    // if back side was scanned and we have an even number, than the common identifier is number -1
-                    if (backsideScanned && (id % 2 == 0)) {
-                        id = id - 1;
-                    }
-                    // add file to the list grouped by the common number
-                    List<String> files = contentMap.getOrDefault(id, new ArrayList<>());
-                    files.add(p.toString());
-                    contentMap.put(id, files);
-                }
-            }
-
+            log.debug("Start record generation");
+            List<Record> indexRecords = new ArrayList<>();
             int totalPosition = 0;
-            for (Entry<Integer, List<String>> entry : contentMap.entrySet()) {
+            for (Entry<Integer, String> entry : contentMap.entrySet()) {
                 // get position in total index
                 totalPosition++;
                 // find correct letter based on position
@@ -581,26 +574,113 @@ public class KatzoomImportPlugin implements IImportPluginVersion3 {
                 kip.setTrayName(currentTray);
                 kip.setTrayPosition(positionInTrayIndex);
 
-                kip.setFiles(entry.getValue());
+                kip.setFolder(entry.getValue());
+                kip.setBacksideScanned(backsideScanned);
+                kip.setAdditionalFolders(spreadCards.get(entry.getKey()));
 
-                List<String> files = kip.getFiles();
-                Collections.sort(files);
-                String filename = files.get(0);
                 // get process title
-                String processName = filename.substring(filename.lastIndexOf("/") + 1, filename.indexOf("."));
-                kip.setLabel(processName);
+                List<String> files = resolveFiles(kip);
+                String filename = Paths.get(files.get(0)).getFileName().toString();
+                kip.setLabel(filename.substring(0, filename.indexOf('.')));
                 Record rec = new Record();
                 rec.setId(String.valueOf(entry.getKey()));
                 rec.setData(rec.getId());
                 rec.setObject(kip);
-                records.add(rec);
+                indexRecords.add(rec);
             }
+
+            log.debug("Generated {} records", totalPosition);
             if (generateEadFile) {
-                generateEadStructure(records, index);
+                log.debug("Start ead archive creation");
+                // only the records of the current index belong into this archive
+                generateEadStructure(indexRecords, index);
+                // the archive plugin holds the node tree, it must not stay alive while the processes are created
+                archivePlugin = null;
+                log.debug("Finished archive creation");
             }
+            records.addAll(indexRecords);
         }
 
         return records;
+    }
+
+    /**
+     * remember in which folder the files of a card are located. Only the folder is kept, the file names are resolved again when they are needed.
+     */
+    private void collectCardFolder(Path file, boolean backsideScanned, Map<Integer, String> contentMap, Map<Integer, List<String>> spreadCards,
+            Map<String, String> knownFolders) {
+        int id = getCardId(file.getFileName().toString(), backsideScanned);
+        if (id < 0) {
+            return;
+        }
+        // reuse the folder name, all cards of a folder share the same instance
+        String cardFolder = knownFolders.computeIfAbsent(file.getParent().toString(), name -> name);
+
+        String knownFolder = contentMap.get(id);
+        if (knownFolder == null) {
+            contentMap.put(id, cardFolder);
+        } else if (!knownFolder.equals(cardFolder)) {
+            // the files of this card are spread over several folders, which is not expected. Remember the additional folders, so that no file gets
+            // lost when they are resolved later on.
+            List<String> additionalFolders = spreadCards.computeIfAbsent(id, key -> new ArrayList<>());
+            if (!additionalFolders.contains(cardFolder)) {
+                additionalFolders.add(cardFolder);
+            }
+        }
+    }
+
+    /**
+     * get the id of the card a file belongs to, or -1 if the file is not part of a card.
+     *
+     * Files always follow the pattern letter - number - .extension. If the back side was scanned as well, the even number belongs to the card with
+     * the previous, odd number.
+     */
+    private static int getCardId(String filename, boolean backsideScanned) {
+        if (!filename.matches("\\w\\d+\\.\\w+")) {
+            return -1;
+        }
+        int id = Integer.parseInt(filename.substring(1, filename.indexOf('.')));
+        if (backsideScanned && (id % 2 == 0)) {
+            id = id - 1;
+        }
+        return id;
+    }
+
+    /**
+     * get all files that belong to the given card. The folder of the card holds the files of 50 - 100 cards, the card id selects the right ones. The
+     * folder listing is cached, because the cards are processed in the same order in which they are stored in the folders.
+     */
+    protected List<String> resolveFiles(KatzoomImportObject kip) {
+        List<String> files = collectFilesInFolder(kip, kip.getFolder());
+        if (kip.getAdditionalFolders() != null) {
+            for (String additionalFolder : kip.getAdditionalFolders()) {
+                files.addAll(collectFilesInFolder(kip, additionalFolder));
+            }
+        }
+        Collections.sort(files);
+        return files;
+    }
+
+    private List<String> collectFilesInFolder(KatzoomImportObject kip, String folderName) {
+        List<String> files = new ArrayList<>();
+        for (String filename : listFolder(folderName)) {
+            if (getCardId(filename, kip.isBacksideScanned()) == kip.getId()) {
+                files.add(Paths.get(folderName, filename).toString());
+            }
+        }
+        return files;
+    }
+
+    /**
+     * list the content of a folder, caching the last listing. All cards of a folder are processed in a row, so a single cached listing is enough to
+     * read every folder only once.
+     */
+    private List<String> listFolder(String folderName) {
+        if (!folderName.equals(cachedFolder)) {
+            cachedFolderContent = StorageProvider.getInstance().list(folderName, NIOFileUtils.fileFilter);
+            cachedFolder = folderName;
+        }
+        return cachedFolderContent;
     }
 
     private TrayIndex findTrayIndexForPosition(int position, List<TrayIndex> trayIndex) {
@@ -730,6 +810,11 @@ public class KatzoomImportPlugin implements IImportPluginVersion3 {
     @Override
     public Fileformat convertData() throws ImportPluginException {
         return null;
+    }
+
+    @Override
+    public void setWorkflowTitle(String workflowTitle) {
+        workflowName = workflowTitle;
     }
 
 }
