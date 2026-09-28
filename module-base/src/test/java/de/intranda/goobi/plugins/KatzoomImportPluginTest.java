@@ -139,22 +139,22 @@ public class KatzoomImportPluginTest {
         assertEquals(1, kip.getLetterPosition());
         assertEquals("A", kip.getTrayName());
         assertEquals(1, kip.getTrayPosition());
-        // last in 'A'
+        // first in 'B', the index file names 200 as its start position
         rec = recordList.get(199);
         kip = (KatzoomImportObject) rec.getObject();
         assertEquals("399", rec.getId());
         assertEquals(200, kip.getTotalPosition());
-        assertEquals("A", kip.getLetterName());
-        assertEquals(200, kip.getLetterPosition());
-        assertEquals("Ahammer", kip.getTrayName());
-        assertEquals(12, kip.getTrayPosition());
-
-        // first in 'B'
-        rec = recordList.get(200);
-        kip = (KatzoomImportObject) rec.getObject();
-        assertEquals("401", rec.getId());
         assertEquals("B", kip.getLetterName());
         assertEquals(1, kip.getLetterPosition());
+        assertEquals("Ahammer", kip.getTrayName());
+        assertEquals(13, kip.getTrayPosition());
+
+        // last in 'A'
+        rec = recordList.get(198);
+        kip = (KatzoomImportObject) rec.getObject();
+        assertEquals("397", rec.getId());
+        assertEquals("A", kip.getLetterName());
+        assertEquals(199, kip.getLetterPosition());
 
         // last entry
         rec = recordList.get(499);
@@ -162,9 +162,9 @@ public class KatzoomImportPluginTest {
         assertEquals("999", rec.getId());
         assertEquals(500, kip.getTotalPosition());
         assertEquals("B", kip.getLetterName());
-        assertEquals(300, kip.getLetterPosition());
+        assertEquals(301, kip.getLetterPosition());
         assertEquals("Amon", kip.getTrayName());
-        assertEquals(112, kip.getTrayPosition());
+        assertEquals(113, kip.getTrayPosition());
     }
 
     /**
@@ -506,8 +506,8 @@ public class KatzoomImportPluginTest {
         }
 
         // the order within the letter is assigned explicitly, because it can no longer be derived from the number of children.
-        // the letter of a position is the last one whose start position is smaller than the position, so 'A' holds the first three cards.
-        assertEquals(Arrays.asList(0, 1, 2, 0), archive.orderNumbers);
+        // the letter of a position is the last one whose start position is not greater than the position, so 'B' starts at the third card.
+        assertEquals(Arrays.asList(0, 1, 0, 1), archive.orderNumbers);
     }
 
     /**

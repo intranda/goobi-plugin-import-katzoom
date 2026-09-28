@@ -115,7 +115,9 @@ public class KatzoomImportPlugin implements IImportPluginVersion3 {
     private List<String> cachedFolderContent;
 
     private static Pattern letterIndexFilePattern = Pattern.compile("([A-Z]\\/?J?)\\s+(\\d+)");
-    private static Pattern trayIndexFilePattern = Pattern.compile("(\\d+)\\s(\\w+)\\s(\\d+)\\s(\\d+)");
+    // order, label, start position and number of entries, separated by tabs. The label may contain blanks and punctuation, some indexes use the
+    // range of the first and the last card of the tray as its name.
+    private static Pattern trayIndexFilePattern = Pattern.compile("^(\\d+)\\t(.+?)\\t(\\d+)\\t(\\d+)\\s*$");
 
     @Getter
     private IArchiveManagementAdministrationPlugin archivePlugin;
@@ -687,28 +689,22 @@ public class KatzoomImportPlugin implements IImportPluginVersion3 {
         if (trayIndex.isEmpty()) {
             return null;
         }
-        TrayIndex current = null;
-        if (position == 1) {
-            current = trayIndex.get(0);
-        } else {
-            for (TrayIndex li : trayIndex) {
-                if (position > li.getStartPosition()) {
-                    current = li;
-                }
+        TrayIndex current = trayIndex.get(0);
+        for (TrayIndex li : trayIndex) {
+            // the start position is the first card of the tray, not the last one of the previous tray
+            if (position >= li.getStartPosition()) {
+                current = li;
             }
         }
         return current;
     }
 
     private LetterIndex findLetterIndexForPosition(int position, List<LetterIndex> letterIndex) {
-        LetterIndex current = null;
-        if (position == 1) {
-            current = letterIndex.get(0);
-        } else {
-            for (LetterIndex li : letterIndex) {
-                if (position > li.getStartPosition()) {
-                    current = li;
-                }
+        LetterIndex current = letterIndex.get(0);
+        for (LetterIndex li : letterIndex) {
+            // the start position is the first card of the letter, not the last one of the previous letter
+            if (position >= li.getStartPosition()) {
+                current = li;
             }
         }
         return current;
