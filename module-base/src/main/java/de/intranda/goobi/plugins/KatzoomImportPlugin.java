@@ -438,7 +438,7 @@ public class KatzoomImportPlugin implements IImportPluginVersion3 {
         for (String fileToImport : files) {
             Path fileToCopy = Paths.get(fileToImport);
             // tif -> images/master
-            if (fileToImport.endsWith(".tif")) {
+            if (fileToImport.endsWith(".tif") || fileToImport.endsWith(".gif")) {
                 StorageProvider.getInstance().copyFile(fileToCopy, Paths.get(masterFolder.toString(), fileToCopy.getFileName().toString()));
             }
             // png -> images/media
