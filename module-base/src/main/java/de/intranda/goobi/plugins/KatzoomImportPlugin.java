@@ -190,6 +190,7 @@ public class KatzoomImportPlugin implements IImportPluginVersion3 {
         MetadataType pathimagefilesType = prefs.getMetadataTypeByName("pathimagefiles");
         MetadataType idType = prefs.getMetadataTypeByName("CatalogIDDigital");
         MetadataType collectionType = prefs.getMetadataTypeByName("singleDigCollection");
+        MetadataType nodeIdType = prefs.getMetadataTypeByName("NodeId");
 
         MetadataType folderStructureType = prefs.getMetadataTypeByName(folderStructure);
         MetadataType letterType = prefs.getMetadataTypeByName(letter);
@@ -232,6 +233,12 @@ public class KatzoomImportPlugin implements IImportPluginVersion3 {
                     Metadata md = new Metadata(collectionType);
                     md.setValue(collection);
                     logical.addMetadata(md);
+                }
+                // link to the archive node of the card
+                if (StringUtils.isNotBlank(kip.getNodeId())) {
+                    Metadata nodeIdMd = new Metadata(nodeIdType);
+                    nodeIdMd.setValue(kip.getNodeId());
+                    logical.addMetadata(nodeIdMd);
                 }
 
                 // folder structure
@@ -374,6 +381,8 @@ public class KatzoomImportPlugin implements IImportPluginVersion3 {
 
             // the order can not be derived from the number of children, the card nodes do not stay in the tree
             node.setOrderNumber(cardsPerFolderNode.merge(parentName, 1, Integer::sum) - 1);
+            // the process gets the id of the node as metadata, otherwise the archive can not find its process
+            kip.setNodeId(node.getId());
 
             // a card index can hold several hundred thousand cards, their nodes must not pile up in the tree
             parentNode.removeSubEntry(node);

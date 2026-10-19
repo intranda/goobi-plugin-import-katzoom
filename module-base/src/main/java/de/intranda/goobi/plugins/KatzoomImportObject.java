@@ -48,4 +48,9 @@ public class KatzoomImportObject implements Serializable {
      * only set when the files of this card are spread over more than one folder, which is not expected to happen
      */
     private List<String> additionalFolders;
+
+    /**
+     * id of the archive node that was created for this card, only set when an ead file is generated
+     */
+    private String nodeId;
 }
