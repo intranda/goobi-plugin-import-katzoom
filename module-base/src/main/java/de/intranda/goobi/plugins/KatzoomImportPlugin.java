@@ -2,6 +2,8 @@ package de.intranda.goobi.plugins;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -12,7 +14,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.TreeMap;
 import java.util.regex.MatchResult;
 import java.util.regex.Matcher;
@@ -114,7 +115,8 @@ public class KatzoomImportPlugin implements IImportPluginVersion3 {
     private String cachedFolder;
     private List<String> cachedFolderContent;
 
-    private static Pattern letterIndexFilePattern = Pattern.compile("([A-Z]\\/?J?)\\s+(\\d+)");
+    // the combined letter is written as 'I/J' or as 'I,J'
+    private static Pattern letterIndexFilePattern = Pattern.compile("([A-Z](?:[/,]J)?)\\s+(\\d+)");
     // order, label, start position and number of entries, separated by tabs. The label may contain blanks and punctuation, some indexes use the
     // range of the first and the last card of the tray as its name.
     private static Pattern trayIndexFilePattern = Pattern.compile("^(\\d+)\\t(.+?)\\t(\\d+)\\t(\\d+)\\s*$");
@@ -522,19 +524,25 @@ public class KatzoomImportPlugin implements IImportPluginVersion3 {
             Path folder = Paths.get(importRootFolder, index);
             // load *.ind file to check letter index (format it: new line after each number)
             // load *.lli file to check tray index (does not exist for every index)
+            // load *.reg file to get the card of each position (does not exist for every index)
             String letterIndexFile = null;
             String trayIndexFile = null;
+            String registerFile = null;
             for (String fileInFolder : StorageProvider.getInstance().list(folder.toString(), NIOFileUtils.fileFilter)) {
                 if (fileInFolder.endsWith(".ind") && !fileInFolder.contains("adm")) {
                     letterIndexFile = fileInFolder;
                 } else if (fileInFolder.endsWith(".lli")) {
                     trayIndexFile = fileInFolder;
+                } else if (fileInFolder.endsWith(".reg") && !fileInFolder.contains("adm")) {
+                    registerFile = fileInFolder;
                 }
             }
             List<LetterIndex> letterIndex = readLetterIndexFile(folder, letterIndexFile);
             log.debug("letter size: {}", letterIndex.size());
             List<TrayIndex> trayIndex = readTrayIndexFile(folder, trayIndexFile);
             log.debug("tray size: {}", trayIndex.size());
+            int[] register = readRegisterFile(folder, registerFile);
+            log.debug("register size: {}", register.length);
 
             // scan all sub folders and remember for each card in which folder its files are located. The file names themselves are not kept, they
             // are resolved from the folder listing when they are needed. Files always follow the pattern letter - number - .extension.
@@ -552,8 +560,11 @@ public class KatzoomImportPlugin implements IImportPluginVersion3 {
 
             log.debug("Start record generation");
             List<Record> indexRecords = new ArrayList<>();
+            // the positions of the letter and tray index refer to the register. It can not be replaced by the sorted card ids: cards were rescanned
+            // later on and got a new id, and the files of some registered cards are missing.
+            int[] cardIds = register.length > 0 ? register : contentMap.keySet().stream().mapToInt(Integer::intValue).toArray();
             int totalPosition = 0;
-            for (Entry<Integer, String> entry : contentMap.entrySet()) {
+            for (int cardId : cardIds) {
                 // get position in total index
                 totalPosition++;
                 // find correct letter based on position
@@ -575,8 +586,15 @@ public class KatzoomImportPlugin implements IImportPluginVersion3 {
                     ind2.setCurrentPosition(positionInTrayIndex + 1);
                 }
 
+                // the position is counted anyway, otherwise all following cards would end up in the wrong letter or tray
+                String cardFolder = contentMap.remove(cardId);
+                if (cardFolder == null) {
+                    log.warn("No files found for card {} at position {} in index {}", cardId, totalPosition, index);
+                    continue;
+                }
+
                 KatzoomImportObject kip = new KatzoomImportObject();
-                kip.setId(entry.getKey());
+                kip.setId(cardId);
                 kip.setTotalPosition(totalPosition);
 
                 kip.setLetterName(currentLetter);
@@ -585,22 +603,27 @@ public class KatzoomImportPlugin implements IImportPluginVersion3 {
                 kip.setTrayName(currentTray);
                 kip.setTrayPosition(positionInTrayIndex);
 
-                kip.setFolder(entry.getValue());
+                kip.setFolder(cardFolder);
                 kip.setBacksideScanned(backsideScanned);
-                kip.setAdditionalFolders(spreadCards.get(entry.getKey()));
+                kip.setAdditionalFolders(spreadCards.get(cardId));
 
                 // get process title
                 List<String> files = resolveFiles(kip);
                 String filename = Paths.get(files.get(0)).getFileName().toString();
                 kip.setLabel(filename.substring(0, filename.indexOf('.')));
                 Record rec = new Record();
-                rec.setId(String.valueOf(entry.getKey()));
+                rec.setId(String.valueOf(cardId));
                 rec.setData(rec.getId());
                 rec.setObject(kip);
                 indexRecords.add(rec);
             }
+            if (!contentMap.isEmpty()) {
+                // usually the original scans of cards that were replaced by a new scan
+                log.warn("{} cards of index {} are not part of the register and are not imported: {}", contentMap.size(), index,
+                        contentMap.keySet());
+            }
 
-            log.debug("Generated {} records", totalPosition);
+            log.debug("Generated {} records", indexRecords.size());
             if (generateEadFile) {
                 log.debug("Start ead archive creation");
                 // only the records of the current index belong into this archive
@@ -768,6 +791,48 @@ public class KatzoomImportPlugin implements IImportPluginVersion3 {
             log.error(e);
         }
         return index;
+    }
+
+    /**
+     * read the register of the index, it contains the id of the card for each position of the index.
+     *
+     * The file starts with a single header byte, followed by five bytes per position: a type byte and the card id as unsigned four byte integer. The
+     * byte order depends on the machine the index was created on, the one that results in the smaller ids is used.
+     */
+    private int[] readRegisterFile(Path folder, String registerFileName) {
+        if (registerFileName == null) {
+            // missing file, abort
+            return new int[0];
+        }
+        byte[] content;
+        try {
+            content = Files.readAllBytes(Paths.get(folder.toString(), registerFileName));
+        } catch (IOException e) {
+            log.error(e);
+            return new int[0];
+        }
+        if (content.length < 1 || (content.length - 1) % 5 != 0) {
+            log.error("Unexpected size of register file {}, it is ignored", registerFileName);
+            return new int[0];
+        }
+        int numberOfEntries = (content.length - 1) / 5;
+        ByteBuffer buffer = ByteBuffer.wrap(content);
+        ByteOrder byteOrder = getMaximumId(buffer.order(ByteOrder.BIG_ENDIAN), numberOfEntries) <= getMaximumId(
+                buffer.order(ByteOrder.LITTLE_ENDIAN), numberOfEntries) ? ByteOrder.BIG_ENDIAN : ByteOrder.LITTLE_ENDIAN;
+        buffer.order(byteOrder);
+        int[] register = new int[numberOfEntries];
+        for (int i = 0; i < numberOfEntries; i++) {
+            register[i] = buffer.getInt(2 + i * 5);
+        }
+        return register;
+    }
+
+    private static long getMaximumId(ByteBuffer buffer, int numberOfEntries) {
+        long max = 0;
+        for (int i = 0; i < numberOfEntries; i++) {
+            max = Math.max(max, Integer.toUnsignedLong(buffer.getInt(2 + i * 5)));
+        }
+        return max;
     }
 
     @Override

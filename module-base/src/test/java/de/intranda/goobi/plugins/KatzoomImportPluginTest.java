@@ -168,6 +168,41 @@ public class KatzoomImportPluginTest {
     }
 
     /**
+     * the positions of the letter index refer to the register of the index. Card 5 was rescanned as card 7, the files of card 6 are missing.
+     */
+    @Test
+    public void testPositionsAreTakenFromTheRegister() {
+        KatzoomImportPlugin plugin = new KatzoomImportPlugin();
+        plugin.setWorkflowName("registertest");
+        List<Record> recordList = plugin.generateRecordsFromFilenames(plugin.getAllFilenames());
+
+        List<Integer> ids = new ArrayList<>();
+        for (Record rec : recordList) {
+            ids.add(((KatzoomImportObject) rec.getObject()).getId());
+        }
+        // the rescanned card takes the position of the original one, the original card is not imported
+        assertEquals(Arrays.asList(1, 2, 7, 3, 4), ids);
+
+        // the missing card keeps its position, card 7 is the fourth card in 'A'
+        KatzoomImportObject kip = (KatzoomImportObject) recordList.get(2).getObject();
+        assertEquals("d0000007", kip.getLabel());
+        assertEquals(4, kip.getTotalPosition());
+        assertEquals("A", kip.getLetterName());
+        assertEquals(4, kip.getLetterPosition());
+
+        // card 3 starts the next letter, although it has a lower id than card 7
+        kip = (KatzoomImportObject) recordList.get(3).getObject();
+        assertEquals(5, kip.getTotalPosition());
+        assertEquals("I,J", kip.getLetterName());
+        assertEquals(1, kip.getLetterPosition());
+
+        // the back side of card 4 is found, although the register only names the front side
+        kip = (KatzoomImportObject) recordList.get(4).getObject();
+        assertEquals(6, kip.getTotalPosition());
+        assertEquals(2, plugin.resolveFiles(kip).size());
+    }
+
+    /**
      * a record must not carry the absolute path of each of its files, the folder and the id are enough to find them again
      */
     @Test

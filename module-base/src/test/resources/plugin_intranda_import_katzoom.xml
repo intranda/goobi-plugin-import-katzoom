@@ -52,5 +52,21 @@
         <tray>Tray</tray>
         <trayPosition>TrayPosition</trayPosition>
     </config>
+    <!-- index with a register file, its positions do not match the sorted card ids -->
+    <config>
+        <template>registertest</template>
+        <runAsGoobiScript>false</runAsGoobiScript>
+        <eadDatabaseName>basexdb</eadDatabaseName>
+        <generateEadFile>false</generateEadFile>
+        <importRootFolder>src/test/resources/registerdata/</importRootFolder>
+        <collection>Zettelkatalog</collection>
+        <doctype>Note</doctype>
+        <folderStructure>FolderStructure</folderStructure>
+        <position>TotalPosition</position>
+        <letter>Letter</letter>
+        <letterPosition>LetterPosition</letterPosition>
+        <tray>Tray</tray>
+        <trayPosition>TrayPosition</trayPosition>
+    </config>
 </config_plugin>
 
